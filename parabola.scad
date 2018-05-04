@@ -1,24 +1,36 @@
+function a(f)
+    = 1/4/f;
+
 // Returns the y coord at x
 // for y = a*x**2
 // where a = 1/(4*f);
 function fx(f,x)
-    = 1/4/f*pow(x,2);
+    = a(f)*pow(x,2);
+    
+// Returns the positive x-value
+// for sqrt(y/a) = x
+function fy(f,y)
+    = pow(y/a(f),0.5);
 
 // Returns the derivative of x 
 // dx/dy @ x
 function dx(f,x)
-    = 2/4/f*pow(x,1);
+    = 2*a(f)*pow(x,1);
   
 // returns the slope of the angle.
 function da(f,x)
     = atan(dx(f,x)/x);
+    
+// returns the magnitude of the vector (x,y).
+function m(x,y)
+    = pow(pow(x,2) + pow(y,2),0.5);
     
 module ParabolicSolid(f, w, d) {
 // ax**2 = y
 // f = height of focus 
 // w = y_max
 // d = depth of extrusion    
-a=1/4/f;    
+a=a(f);    
 p=1/(2*a);
 ConeHeight = 0.5*pow(2,0.5)*(w+p);
 ConeRadius = ConeHeight;
@@ -50,7 +62,7 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     x1=x1+1e-9;
     x2=x2+1e-9;
     
-    a=1/4/f;    
+    a=a(f);    
     p=1/(2*a);
     
     // maximum x coord    
@@ -58,18 +70,19 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     dx=x2-x1;
     
     //y1,y2 at end points
-    y1=pow(x1,2)*a;
-    y2=pow(x2,2)*a;
-    y0=pow(x0,2)*a; //i.e. w
+    y1=fx(f,x1);
+    y2=fx(f,x2);
+    y0=fx(f,x0); //i.e. w
     
     // Resultant absolute vector lengths
-    m1=pow(pow(y1,2)+pow(x1,2),0.5);
-    m2=pow(pow(y2,2)+pow(x2,2),0.5);
-    m0=pow(pow(y0,2)+pow(x0,2),0.5);
+    m1=m(x1,y1);
+    m2=m(x2,y2);
+    m0=m(x0,y0);
+    
     // and angles
-    a1=atan(y1/x1);
-    a2=atan(y2/x2);
-    a0=atan(y0/x0);
+    a1=da(f,x1);
+    a2=da(f,x2);
+    a0=da(f,x0);
          
     // overall angle
     theta=atan((y2-y1)/dx);
@@ -89,8 +102,8 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     r1 = x0 + x1;
     r2 = x0 - x2;
         
-   rotate(a=[0,th1,0])
-    translate([-x1,0,-pow(x1,2)*a])
+   //rotate(a=[0,th1,0])
+   // translate([-x1,0,-pow(x1,2)*a])
     difference() {
     ParabolicTrough(f,w,d,t);
 //Subtract first portion
