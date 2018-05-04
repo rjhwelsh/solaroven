@@ -5,7 +5,7 @@ function a(f)
 // for y = a*x**2
 // where a = 1/(4*f);
 function fx(f,x)
-    = a(f)*pow(x,2);
+    = a(f)*pow(x,2);   
     
 // Returns the positive x-value
 // for sqrt(y/a) = x
@@ -19,12 +19,20 @@ function dx(f,x)
   
 // returns the slope of the angle.
 function da(f,x)
-    = atan(dx(f,x)/x);
+    = atan(dx(f,x));
+    
+// returns the normal angle to the slope at x.   
+function na(f,x)
+    = da(f,x) + 90;
     
 // returns the magnitude of the vector (x,y).
 function m(x,y)
     = pow(pow(x,2) + pow(y,2),0.5);
     
+// returns the next x coord to get a vector length of m. (estimate)
+function xn(f,x,m)
+    = m*cos(da(f,x+0.5*m))+x;   
+     
 module ParabolicSolid(f, w, d) {
 // ax**2 = y
 // f = height of focus 
@@ -105,7 +113,9 @@ module ParabolicSection(f,w,d,t,x1,x2) {
    //rotate(a=[0,th1,0])
    // translate([-x1,0,-pow(x1,2)*a])
     difference() {
-    ParabolicTrough(f,w,d,t);
+    ParabolicTrough(f,w,d,t);   
+        
+               
 //Subtract first portion
     translate([-x0,-1,-1])
         translate([r1-r1*cos(th1),0,y1-r1*sin(th1)])
@@ -117,6 +127,22 @@ module ParabolicSection(f,w,d,t,x1,x2) {
      translate([0,0,y2])   
         rotate([0,-th2,0])
             cube([L2+2+r2,d+2,w+2]);
+        
+        
+// Subtract unrotated range.
+    translate([-x0,-1,-1])
+    translate([-r1-t,0,0])
+    cube([2*r1,d+2,L1+2]);
+    translate([x2+t,-1,-1])
+    cube([L2+2+r2,d+2,w+2]);
     };
+    
+
 };
 
+// Produces a parabola section of estimated length, l
+module ParabolicLength(f,x,t,d,l) {
+    x2=xn(f,x,l);
+    echo("x2=",x2);
+    ParabolicSection(f,x2+l,d,t,x,x2);  
+}
