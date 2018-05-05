@@ -7,10 +7,20 @@ function a(f)
 function fx(f,x)
     = a(f)*pow(x,2);   
     
+// returns the focus at thickness, t.    
+function fxt(f,x,t)
+    = f/(1+t/fx(f,max([x,1e-9])));
+    
 // Returns the positive x-value
 // for sqrt(y/a) = x
 function fy(f,y)
     = pow(y/a(f),0.5);
+    
+function root1(a,b,c)
+    = (-b+pow((b*b-4*a*c),0.5))/2/a;
+    
+function root2(a,b,c)
+    = (-b+pow((b*b-4*a*c),0.5))/2/a;
 
 // Returns the derivative of x 
 // dx/dy @ x
@@ -23,7 +33,7 @@ function da(f,x)
     
 // returns the normal angle to the slope at x.   
 function na(f,x)
-    = da(f,x) + 90;
+    = da(f,x) +90;
     
 // returns the magnitude of the vector (x,y).
 function m(x,y)
@@ -33,14 +43,14 @@ function m(x,y)
 function xn(f,x,m)
     = m*cos(da(f,x+0.5*m))+x;   
      
-module ParabolicSolid(f, w, d) {
+module ParabolicSolid(f, y_max, d) {
 // ax**2 = y
 // f = height of focus 
-// w = y_max
+// y_max = y_max
 // d = depth of extrusion    
 a=a(f);    
 p=1/(2*a);
-ConeHeight = 0.5*pow(2,0.5)*(w+p);
+ConeHeight = 0.5*pow(2,0.5)*(y_max+p);
 ConeRadius = ConeHeight;
 translate([0,d,0])
 rotate([90,0,0])    
@@ -54,16 +64,16 @@ projection(cut=true)
     }
 };
 
-module ParabolicTrough(f,w,d,t) {
+module ParabolicTrough(f,y_max,d,t) {
     // t = the thickness between parabolas    
     difference() {
-    ParabolicSolid(f,w,d);
+    ParabolicSolid(f,y_max,d);
     translate([0,-1,t])
-        ParabolicSolid(f/(1+t/w),w,d+3);
+        ParabolicSolid(f/(1+t/y_max),y_max,d+3);
     }
 };
 
-module ParabolicSection(f,w,d,t,x1,x2) {
+module ParabolicSection(f,y_max,d,t,x1,x2) {
     // Returns a section of parabola between x1 and x2 
     
     //Handle zero exceptions
@@ -74,13 +84,13 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     p=1/(2*a);
     
     // maximum x coord    
-    x0=pow(w/a,0.5);
+    x0=pow(y_max/a,0.5);
     dx=x2-x1;
     
     //y1,y2 at end points
     y1=fx(f,x1);
     y2=fx(f,x2);
-    y0=fx(f,x0); //i.e. w
+    y0=fx(f,x0); //i.e. y_max
     
     // Resultant absolute vector lengths
     m1=m(x1,y1);
@@ -103,7 +113,7 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     L2=m0*cos(a0-a2)-m1;
     
     // ConeHeight (copied from above)
-    ConeHeight = 0.5*pow(2,0.5)*(w+p);
+    ConeHeight = 0.5*pow(2,0.5)*(y_max+p);
     ConeRadius = ConeHeight;
     
     // Cube sizes 
@@ -113,7 +123,7 @@ module ParabolicSection(f,w,d,t,x1,x2) {
    //rotate(a=[0,th1,0])
    // translate([-x1,0,-pow(x1,2)*a])
     difference() {
-    ParabolicTrough(f,w,d,t);   
+    ParabolicTrough(f,y_max,d,t);   
         
                
 //Subtract first portion
@@ -126,7 +136,7 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     translate([x2,-1,-1]) 
      translate([0,0,y2])   
         rotate([0,-th2,0])
-            cube([L2+2+r2,d+2,w+2]);
+            cube([L2+2+r2,d+2,y_max+2]);
         
         
 // Subtract unrotated range.
@@ -134,7 +144,7 @@ module ParabolicSection(f,w,d,t,x1,x2) {
     translate([-r1-t,0,0])
     cube([2*r1,d+2,L1+2]);
     translate([x2+t,-1,-1])
-    cube([L2+2+r2,d+2,w+2]);
+    cube([L2+2+r2,d+2,y_max+2]);
     };
     
 
@@ -144,5 +154,5 @@ module ParabolicSection(f,w,d,t,x1,x2) {
 module ParabolicLength(f,x,t,d,l) {
     x2=xn(f,x,l);
     echo("x2=",x2);
-    ParabolicSection(f,x2+l,d,t,x,x2);  
+    ParabolicSection(f,fx(f,x2+l),d,t,x,x2);  
 }
