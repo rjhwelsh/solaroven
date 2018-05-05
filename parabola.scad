@@ -8,20 +8,17 @@ function fx(f,x)
     = a(f)*pow(x,2);   
     
 // returns the focus at thickness, t.    
-function fxt(f,x,t)
-    = f/(1+t/fx(f,max([x,1e-9])));
-    
+function focus_adjust(f,t,ymax)
+    = f*(1+t/ymax);
+          
 // Returns the positive x-value
 // for sqrt(y/a) = x
 function fy(f,y)
     = pow(y/a(f),0.5);
     
-function root1(a,b,c)
-    = (-b+pow((b*b-4*a*c),0.5))/2/a;
+function root(a,b,c)
+    = [(-b-pow((b*b-4*a*c),0.5))/2/a,(-b+pow((b*b-4*a*c),0.5))/2/a];
     
-function root2(a,b,c)
-    = (-b+pow((b*b-4*a*c),0.5))/2/a;
-
 // Returns the derivative of x 
 // dx/dy @ x
 function dx(f,x)
@@ -124,8 +121,7 @@ module ParabolicSection(f,y_max,d,t,x1,x2) {
    // translate([-x1,0,-pow(x1,2)*a])
     difference() {
     ParabolicTrough(f,y_max,d,t);   
-        
-               
+                      
 //Subtract first portion
     translate([-x0,-1,-1])
         translate([r1-r1*cos(th1),0,y1-r1*sin(th1)])
@@ -153,6 +149,5 @@ module ParabolicSection(f,y_max,d,t,x1,x2) {
 // Produces a parabola section of estimated length, l
 module ParabolicLength(f,x,t,d,l) {
     x2=xn(f,x,l);
-    echo("x2=",x2);
     ParabolicSection(f,fx(f,x2+l),d,t,x,x2);  
 }
