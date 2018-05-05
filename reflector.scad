@@ -5,14 +5,17 @@ $fn=100;
 // global vars
 //f=150; // parabola focus
 t=90;  // section thickness
-d=50;  // depth of profile
+d=90;  // depth of profile
 ymax=600;
 
 f=focus_adjust(150,t,ymax); //adjust focus 
+fil1=5; // fillet radius 
 
-t1=10;  // wall thickness / pin diameter
+t1=10+2*fil1;  // wall thickness / pin diameter
+t2=0.9;         // sheet metal thickness
+
 pc1=0.2;  // pin clearance
-d1=15; // pin depth
+d1=15+fil1; // pin depth
 h1=10;  // pin height off surface.
 e1=10;  // pin offset offend
 
@@ -26,7 +29,8 @@ a1=45;  // angle of diagonal track
 j1=40;  // length of track parallel to end
 p1=t1*1.1; // pin latch radius
 
-fil1=10; // fillet radius 
+nob=3; // number of bolts
+
 
 
 module panelBody(x,t,d,l) {
@@ -54,20 +58,29 @@ module panelBody(x,t,d,l) {
     dxb=np*sin(-ab);
     dyb=np*cos(-ab);
     
+    
      // Sculpting
+    difference(){
+    offset_3d(r=fil1)
     difference(){
         
         // Parabolic section; initial block
         ParabolicSection(f,fx(f,ymax),d,t,x,xn(f,x,l));
         
+        // Cut-away for pin slot
+        difference(){
+            ParabolicSection(f,fx(f,ymax),fil1,t,x,xn(f,x,l));
+            ParabolicLength(f,x-0.1,t-h1-t1,d1+1,l-e1-f1-g1*sin(a1)-p1/2-h2);
+        }
+        
         // pin travel guide
         translate([0,-1,0])
         intersection(){
-            ParabolicLength(f,x-0.1,t-h1,d1+1,l-e1); //
+            ParabolicLength(f,x-0.1,t-h1,d1+1,l-e1+fil1); //
             
         difference(){
-            ParabolicLength(f,x-0.1,t,d1+1,l-e1); //
-            ParabolicLength(f,x-0.1,t-h1-t1,d1+1,l-e1); //
+            ParabolicLength(f,x-0.1,t,d1+1,l-e1+fil1); //
+            ParabolicLength(f,x-0.1,t-h1-t1,d1+1,l-e1+fil1); //
         }
         }          
       
@@ -77,12 +90,39 @@ module panelBody(x,t,d,l) {
      // Parabolic section; undercut
         translate([0.1,-0.1,-0.1])
         ParabolicLength(f,x-1,t-h1-t1-h2,d+1,l-e1-f1-g1*sin(a1)-p1/2-h2/2); 
-    };  
+        
+    };
 
-
+    // Bolt holes
+    for (i = [1 : nob ]) {
+            bl=(l-e1-f1-g1*sin(a1)-p1/2-h2)/(nob+1)*i;
+            bx=xn(f,x,bl); // location of bolt
+            by=fx(f,bx);  
+            bz=(d-2*d1)*1/2+2*d1;  
+            ba=da(f,bx); //angle of tangent 
+            bdx=(t-h1-t1-h2-fil1)*sin(-ab);
+            bdy=(t-h1-t1-h2-fil1)*cos(-ab);
+        
+            // 8mm bolt
+            boltHole(4,8,10,bx+bdx,by+bdy,bz,-ba);
+    }
+    
+   translate([0,2*d1,0])
+        intersection(){
+            ParabolicLength(f,x-0.1-2*fil1,t-h1,d,l+4*fil1); //
+            
+        difference(){
+            ParabolicLength(f,x-0.1-2*fil1,t,d,l+4*fil1); //
+            ParabolicLength(f,x-0.1-2*fil1,t-h1-t2-pc1,d,l+4*fil1); //
+        }
+    }
+    
+    
+};
     if (x>0) {
     // Pin Body
-        difference() {
+        offset_3d(r=fil1)  // fillet w/ 3doffset
+        difference() {            
             pinBody(xb+dxb,yb+dyb,-ab);
             translate([0,-t1-1,0])
             difference() {                
@@ -109,11 +149,12 @@ module pinSlot(x,y,a) {
     // Generates a pin slot at the required location.
     translate([x,0,y])
     rotate([0,a,0])
-    // Set to zero
-    translate([t1*sin(a1/2)*sin(a1/2),0,t1*sin(a1/2)*cos(a1/2)])
-    translate([-g1*sin(a1),0,-g1*cos(a1)])  
-    translate([0,-0.9,-j1]) 
-    union(){
+    
+        // Set to zero
+        translate([t1*sin(a1/2)*sin(a1/2),0,t1*sin(a1/2)*cos(a1/2)])
+        translate([-g1*sin(a1),0,-g1*cos(a1)])  
+        translate([0,-0.9,-j1]) 
+            union(){
         
                 // Parallel slide
                 //compensate for edges/angles
@@ -121,8 +162,8 @@ module pinSlot(x,y,a) {
                 //center on end of diagonal
                 translate([g1*sin(a1),0,g1*cos(a1)])    
                 translate([-t1/2,0,0])
-                    cube([t1,d1+1,j1+t1/2]);
-                        
+                        cube([t1,d1+1,j1+t1/2]);
+        
                 // Angular slide
                 rotate([0,a1,0])
                 translate([-t1/2,0,0])
@@ -153,15 +194,27 @@ module pinBody(x,y,a) {
                      
             // pin connection
             rotate([-90,0,0])
-            cylinder(r=t1/2-pc1,h=d1+pc1);
+            cylinder(r=pc1,h=d1+pc1-fil1);
         }
 }
 
+module boltHole(r1,r2,c1,x,y,z,a){
+    translate([x,z,y])
+    rotate([0,a,0])     
+    union() {
+    cylinder(r=r1,h=t); // Thru hole
+    cylinder(r=r2,h=c1); // Counter Sink
+    }
+}
 
-
+//offset_3d(r=fil1)
+//union(){
 //panelBody(0,t,d,200);
-panelBody(190,t,d,200);
+//mirror([x,0,0])
+//panelBody(0,t,d,200);
+//}
+//panelBody(190,t,d,200);
+panelBody(334,t,d,200);
 
-//ParabolicLength(150,189.7,50,60,200);
-//ParabolicLength(150,333.57,50,70,200);
+
 
