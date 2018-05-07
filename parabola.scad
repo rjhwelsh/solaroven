@@ -24,7 +24,7 @@ function ParabolaFocus(f)
 // solve for x, + perpendicular offset to curve, o
 // solve for x, + elongating the length of the curve, f
 // solve for x, + o + f
-function Parabola(a,b,c,x=nan,y=nan,o=0,f=0,n=$fn) =
+function Parabola(a,b=0,c=0,x=nan,y=nan,o=0,f=0,n=$fn) =
     (f==0 ?
     (o==0 ?
         (y==nan ? [x,a*pow(x,2)+b*pow(x,1)+c*pow(x,0)] : // Solve for x
@@ -41,26 +41,26 @@ function Parabola(a,b,c,x=nan,y=nan,o=0,f=0,n=$fn) =
               Parabola(a,b,c,xn,o=o,f=0)[1]);  //Add length
             
 // Returns the gradient of the parabola at different sections.
-function ParabolaGradient(a,b,c,x=nan,y=nan,angle=false) =
+function ParabolaGradient(a,b=0,c=0,x=nan,y=nan,angle=false) =
     (angle==false ?
     (y==nan ? [2*a*x+b] :
         2*a*Parabola(a,b,c,y=y) + [b,b] ) :
     [ for (i=ParabolaGradient(a,b,c,x=x,y=y,angle=false))atan(i) ]); 
 
-function ParabolaNormal(a,b,c,x=nan,y=nan,angle=false) =
+function ParabolaNormal(a,b=0,c=0,x=nan,y=nan,angle=false) =
     (angle==false ?
         [ for (i=ParabolaGradient(a,b,c,x=x,y=y,angle=angle)) -1/i ] :
         [ for (th=ParabolaNormal(a,b,c,x=x,y=y,angle=false)) atan(th) ]);  
 
 // Use eulers method to travel a length around the parabola.
-function ParabolaTravel(a,b,c,x,l=1,step=0,n=1) = 
+function ParabolaTravel(a,b=0,c=0,x,l=1,step=0,n=1) = 
     (step >= n ? x : 
                   ParabolaTravel(a,b,c,
                   x + l/n*cos(
                     ParabolaGradient(a,b,c,x=x,angle=true)[0]),
                   l, step+1, n));
 
-module ParabolaPolygon(a,b,c,x=[],y=[],o=[0,1],f=[0,0],n=$fn+20){        
+module ParabolaPolygon(a,b=0,c=0,x=[],y=[],o=[0,1],f=[0,0],n=$fn+20){        
     // Adjust x based on offset length
     x=[ for(i=[0,1]) ParabolaTravel(a,b,c,x[i],l=f[i],n=n)];
         echo("x=",x);
