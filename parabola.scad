@@ -38,7 +38,7 @@ function Parabola(a,b=0,c=0,x=nan,y=nan,o=0,f=0,n=$fn) =
             [ x0+o*cos(an), y0+o*sin(an) ]:   // Add offset         
             [ x0-o*cos(an), y0-o*sin(an) ])): // Add offset behind center
         let( xn=ParabolaTravel(a,b,c,x,l=f,n=n))
-              Parabola(a,b,c,xn,o=o,f=0)[1]);  //Add length
+              Parabola(a,b,c,xn,o=o,f=0));  //Add length
             
 // Returns the gradient of the parabola at different sections.
 function ParabolaGradient(a,b=0,c=0,x=nan,y=nan,angle=false) =
