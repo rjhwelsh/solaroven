@@ -2,7 +2,7 @@ use<parabola.scad>
 use<fillet.scad>
 use<MCAD/metric_fastners.scad>
 
-$fn=101;
+$fn=121;
 
 scale=0.25;     // model scaled to this size on slic3r
 tol=0.2/scale;  // print manufacturing best tolerance
@@ -14,7 +14,7 @@ fillet=5; // fillet radius, mm
 
 a=ParabolaFocus(f);
 w=100; // overall part width, mm
-t=14; // nominal thickness, mm
+t=14*2; // nominal thickness, mm
 l=800; // reflector length available, mm
 
 x_max=ParabolaTravel(a=a,x=0,l=l/2,step=0,n=1000); // maximum x dimension, mm       
@@ -88,6 +88,7 @@ module basePart(p=1,  // Part no.
 
 module partNo(i) {
 // The main function for generating each part.
+    rotate([90,0,0])
     difference()
     {
     union() {
@@ -182,7 +183,8 @@ module boltAssembly(pn,
             nb=3, // Number of bolts along parabola
             wb=2,  // Number of bolts along width
             db=htol-htol,   // Bolt depth, positioning 
-            bolt_size=[ 5,20]  // Bolt spec 5mm  M2.5, 20mm deep
+            bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+            hole=false
             ) { 
     
     for (k=[1:wb]) {
@@ -198,16 +200,37 @@ module boltAssembly(pn,
     // Bolt assembly contruction
     translate([0,0,-t])
     union() {
-        bolt(bolt_size[0]
-            ,bolt_size[1]); // 5mm Bolt, M2.5, weight 8g
+        
+        if (!hole) {
+            bolt(bolt_size[0]
+                ,bolt_size[1]); // 5mm Bolt, M2.5, weight 8g
+        }
+        else {
+            dia=bolt_size[0];
+            e=1.8*dia;
+            k=0.7*dia;
+            c=0.2*dia;
+            
+            union() {
+            translate([0,0,-k])
+            cylinder(r=e/2,h=2*k,$fn=6);
+            cylinder(r=dia/2,h=bolt_size[1]);
+            }
+        }
+                
         translate([0,0,bolt_size[1]-bolt_size[0]*0.8])
         union(){
-            translate([0,0,bolt_size[0]*0.1])
-            flat_nut(bolt_size[0]); // M2.5 NUT
-  
-            translate([0,0,bolt_size[0]*0.1])
-            washer(bolt_size[0]);  // M2.5 Flat Washer            
-            washer(bolt_size[0]);  // 
+            
+          if (!hole) {
+                translate([0,0,bolt_size[0]*0.1])
+                flat_nut(bolt_size[0]); // M2.5 NUT
+               washer(bolt_size[0]); // M2.5 Flat Washer
+            }
+            
+          if (hole) { 
+                translate([0,0,0])
+                cylinder(h=bolt_size[0]*0.3,r=bolt_size[0]); 
+              } //  Clearance           
         }
     }
     }
@@ -216,7 +239,8 @@ module boltAssembly(pn,
 module boltHoles(pn) {
     boltAssembly(pn,
             db=tol,   // Bolt depth 
-            bolt_size=[ 5+2*htol,t+0.7*(5+2*htol)+tol]);  // Bolt spec 5mm  M2.5, 20mm deep);
+            bolt_size=[ 5+2*htol,t+0.7*(5+2*htol)+tol],
+            hole=true);  // Bolt spec 5mm  M2.5, 20mm deep);
 }
 
 // Creates an embossed id for each part number
@@ -241,9 +265,9 @@ module partEmbossID(pn,
     } 
 }
 
-//for (i=[1:no_of_sections]) {
-//partNo(i);
-//}
+for (i=[1:no_of_sections]) {
+partNo(3);
+}
 
 
 
