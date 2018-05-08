@@ -245,13 +245,5 @@ module partEmbossID(pn,
 //partNo(i);
 //}
 
-//pn=no_of_sections/2-0;
-//translate([0,0,0])
-// partNo(pn);
-
-  
-
-
-
 
 
