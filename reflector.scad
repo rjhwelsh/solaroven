@@ -1,220 +1,257 @@
-include<parabola.scad>
-include<fillet.scad>
+use<parabola.scad>
+use<fillet.scad>
+use<MCAD/metric_fastners.scad>
 
-$fn=100;
-// global vars
-//f=150; // parabola focus
-t=90;  // section thickness
-d=90;  // depth of profile
-ymax=600;
+$fn=101;
 
-f=focus_adjust(150,t,ymax); //adjust focus 
-fil1=5; // fillet radius 
+scale=0.25;     // model scaled to this size on slic3r
+tol=0.2/scale;  // print manufacturing best tolerance
+htol=0.2/scale/2+tol; // hole clearance
 
-t1=10+2*fil1;  // wall thickness / pin diameter
-t2=0.9;         // sheet metal thickness
+// Overall Dimensions
+f=150; // parabola focus height, mm
+fillet=5; // fillet radius, mm 
 
-pc1=0.2;  // pin clearance
-d1=15+fil1; // pin depth
-h1=10;  // pin height off surface.
-e1=10;  // pin offset offend
+a=ParabolaFocus(f);
+w=100; // overall part width, mm
+t=14; // nominal thickness, mm
+l=800; // reflector length available, mm
 
-h2=10;  // under cut from pin slot.
+x_max=ParabolaTravel(a=a,x=0,l=l/2,step=0,n=1000); // maximum x dimension, mm       
+y_max=Parabola(a=a,x=x_max)[1];
 
-t0=h1+h2+t1; // thickness of thin section.
-
-f1=5;  // offset to diagonal track
-g1=15;  // length of diagonal track
-a1=45;  // angle of diagonal track
-j1=40;  // length of track parallel to end
-p1=t1*1.1; // pin latch radius
-
-nob=3; // number of bolts
-
+no_of_sections = 8; // The no. of sections to make the reflector in 
+l_sect=l/(no_of_sections); // The length of a single section.
+x_sect=cat(
+            [ for( i = [ 0 : no_of_sections ] ) 
+            ParabolaTravel(a=a,x=-x_max,l=i*l_sect,step=0,n=1000) ],
+            [x_max]
+            );
+echo("x max=",x_max,"y max", y_max);   
+echo("x sections=",x_sect); 
+echo("l sections=",l_sect);      
 
 
-module panelBody(x,t,d,l) {
-    
-    // Error Checking
-    if(2*d1>d){
-           echo("<font color='red'>Error: d1 must be less than half of d!</font>");
-           assert(false);
-    };
-       
-    xf=xn(f,x,l); // final x coord
-    
-    // Line up at pin slot
-    xp=xn(f,x,l-e1-f1);  // xp location of pin
-    yp=fx(f,xp);   // yp location of pin
-    ap=da(f,xf);  // angle of tangent @ end face   
-    np=t-t1-h1; // the magnitude along normal
-    dx=np*sin(-ap);
-    dy=np*cos(-ap);
-    
-    // Line up at pin body
-    xb=xn(f,x,-e1-f1); // xb location of body
-    yb=fx(f,xb);  // yb location of pin
-    ab=da(f,x); //angle of tangent @ start face
-    dxb=np*sin(-ab);
-    dyb=np*cos(-ab);
-    
-    
-     // Sculpting
-    difference(){
-    offset_3d(r=fil1)
-    difference(){
-        
-        // Parabolic section; initial block
-        ParabolicSection(f,fx(f,ymax),d,t,x,xn(f,x,l));
-        
-        // Cut-away for pin slot
-        difference(){
-            ParabolicSection(f,fx(f,ymax),fil1,t,x,xn(f,x,l));
-            ParabolicLength(f,x-0.1,t-h1-t1,d1+1,l-e1-f1-g1*sin(a1)-p1/2-h2);
-        }
-        
-        // pin travel guide
-        translate([0,-1,0])
-        intersection(){
-            ParabolicLength(f,x-0.1,t-h1,d1+1,l-e1+fil1); //
-            
-        difference(){
-            ParabolicLength(f,x-0.1,t,d1+1,l-e1+fil1); //
-            ParabolicLength(f,x-0.1,t-h1-t1,d1+1,l-e1+fil1); //
-        }
-        }          
+// PLA Strength Calc
+ali_density=2700; // kg/m^3
+ali_t=0.9;        //mm
+ali_density2=ali_density*ali_t*1e-3; // kg/m^2
+reflector_panel_length=600; //mm
+ali_density1=ali_density2*reflector_panel_length*1e-3; //kg/m         
+Fw=ali_density1*l_sect*9.8; // N , Weight per panel 
+Fw2=Fw+(8/1000)*6*2*9.8; // N, Weight per bolt assembly per panel 
+uts_pla=50; // MPa, N/mm^2
+FOS=10;      // Factor of Safety
+dist_a=l_sect/2; //mm
+dist_b=l_sect/2;       //mm
+dist_c=2*dist_a-dist_b; //mm
+
+F1=dist_a/dist_b*Fw; // N
+F2=(dist_a*Fw + dist_c*F1)/dist_b; // N
+F3=(dist_a*Fw + dist_c*F2)/dist_b; // N
+
+echo("F1=",F1);
+echo("F2=",F2);
+echo("F3=",F3);
       
-      // pin slot  
-         pinSlot(xp+dx,yp+dy,-ap);
-        
-     // Parabolic section; undercut
-        translate([0.1,-0.1,-0.1])
-        ParabolicLength(f,x-1,t-h1-t1-h2,d+1,l-e1-f1-g1*sin(a1)-p1/2-h2/2); 
-        
-    };
-
-    // Bolt holes
-    for (i = [1 : nob ]) {
-            bl=(l-e1-f1-g1*sin(a1)-p1/2-h2)/(nob+1)*i;
-            bx=xn(f,x,bl); // location of bolt
-            by=fx(f,bx);  
-            bz=(d-2*d1)*1/2+2*d1;  
-            ba=da(f,bx); //angle of tangent 
-            bdx=(t-h1-t1-h2-fil1)*sin(-ab);
-            bdy=(t-h1-t1-h2-fil1)*cos(-ab);
-        
-            // 8mm bolt
-            boltHole(4,8,10,bx+bdx,by+bdy,bz,-ba);
-    }
-    
-   translate([0,2*d1,0])
-        intersection(){
-            ParabolicLength(f,x-0.1-2*fil1,t-h1,d,l+4*fil1); //
+function Fmax(a,b,c,Fw,Fp=0,n=0) =
+    ( n==0 ? Fp :
+        let( Fn = (a*Fw + c*Fp)/b )
+            Fmax(a,b,c,Fw,Fn,n=n-1) );
             
-        difference(){
-            ParabolicLength(f,x-0.1-2*fil1,t,d,l+4*fil1); //
-            ParabolicLength(f,x-0.1-2*fil1,t-h1-t2-pc1,d,l+4*fil1); //
-        }
-    }
-    
-    
-};
-    if (x>0) {
-    // Pin Body
-        offset_3d(r=fil1)  // fillet w/ 3doffset
-        difference() {            
-            pinBody(xb+dxb,yb+dyb,-ab);
-            translate([0,-t1-1,0])
-            difference() {                
-                // Parabolic section; initial block
-                ParabolicSection(f,fx(f,ymax),d1+1,2*t,x,xn(f,x,l));
-                     // Parabolic section; undercut
-                translate([0.1,-0.1,-0.1])
-                ParabolicLength(f,x-1,t-h1-t1,d1+1,l-e1-f1-g1*sin(a1)-p1/2-h2/2); 
-            }
-        }
-    }
-}
+            
+Fm=Fmax(dist_a,dist_b,dist_c,Fw2,Fp=0,n=no_of_sections/2);
+echo("Fmax=",Fm);
 
-module pinSlot(x,y,a) {
-    
-    xtravel=t1*sin(a1/2)*sin(a1/2)-g1*sin(a1);
-    ytravel=t1*sin(a1/2)*cos(a1/2)-g1*cos(a1)-j1;
-    
-    if(ytravel<t0){
-           echo("<font color='red'>Error: The ytravel for the pin slot must be more than t!</font>");
-           assert(false);
-    };
-    
-    // Generates a pin slot at the required location.
-    translate([x,0,y])
-    rotate([0,a,0])
-    
-        // Set to zero
-        translate([t1*sin(a1/2)*sin(a1/2),0,t1*sin(a1/2)*cos(a1/2)])
-        translate([-g1*sin(a1),0,-g1*cos(a1)])  
-        translate([0,-0.9,-j1]) 
-            union(){
-        
-                // Parallel slide
-                //compensate for edges/angles
-                translate([-t1*sin(a1/2)*sin(a1/2),0,-t1*sin(a1/2)*cos(a1/2)]) 
-                //center on end of diagonal
-                translate([g1*sin(a1),0,g1*cos(a1)])    
-                translate([-t1/2,0,0])
-                        cube([t1,d1+1,j1+t1/2]);
-        
-                // Angular slide
-                rotate([0,a1,0])
-                translate([-t1/2,0,0])
-                    cube([t1,d1+1,g1]);
-        
-                // Pinhole
-                rotate([-90,0,0])
-                    cylinder(r=p1/2,h=d1+1);
-           }
-}
+ReqArea=Fm*FOS/uts_pla;  // Required Area for UTS
 
+echo("Area=",ReqArea); //mm^2
+echo("Square=",pow(ReqArea,0.5)); //mm
+echo("Radius=",pow(ReqArea/3.14,0.5)); //mm
 
-module pinBody(x,y,a) {
-    // Generates a pin body at the required location.
-    xtravel=t1*sin(a1/2)*sin(a1/2)-g1*sin(a1);
-    ytravel=t1*sin(a1/2)*cos(a1/2)-g1*cos(a1)-j1;
-    
-    at=t1; // arm thickness
-
-    translate([x,0,y])
-    rotate([0,a,0])     
-    translate([xtravel,-pc1,ytravel]) 
-        union() {  
-            // arm
-            rotate([0,45,0])
-            translate([0,-at+pc1,-t1/2+pc1])
-            ParabolicSolid(1,t+t1,at);
-                     
-            // pin connection
-            rotate([-90,0,0])
-            cylinder(r=pc1,h=d1+pc1-fil1);
+module basePart(p=1,  // Part no.
+                a=a,  // Parabolic a from a*x^2
+                w=w-2*fillet,  // Extrusion, width, w
+                o=[fillet,t-fillet],  // Normal vector from surface parabola at 0
+                f=[fillet,-fillet]) { // Tangent Length from each edge, x0+f, x1+f
+                                        // (follows curve)
+      translate([0,-fillet,0])
+        offset_3d(r=fillet){
+        rotate([90,0,0])
+        linear_extrude(height=w)
+        ParabolaPolygon(a=a,
+            x=[x_sect[p-1],x_sect[p]],
+            o=o,
+            f=f);
         }
 }
 
-module boltHole(r1,r2,c1,x,y,z,a){
-    translate([x,z,y])
-    rotate([0,a,0])     
+module partNo(i) {
+// The main function for generating each part.
+    difference()
+    {
     union() {
-    cylinder(r=r1,h=t); // Thru hole
-    cylinder(r=r2,h=c1); // Counter Sink
+        basePart(i);
+        pinConn1(pn=i,a=atan(htol/(t/4)));
+        partEmbossID(pn=i);
+    }   
+        pinHole1(pn=i+1);
+        boltHoles(pn=i);
     }
 }
 
-//offset_3d(r=fil1)
-//union(){
-//panelBody(0,t,d,200);
-//mirror([x,0,0])
-//panelBody(0,t,d,200);
+function partCoord(p=1,o=0,f=0,n=$fn) =
+    ( len(p) > 1 ?       // Take an average of all partNos provided.
+        let(ps=[ for (i=p) x_sect[i-1]] )
+        let(fn=Parabola(a,x=sumv(ps)/len(ps),o=o,f=f,n=n))
+     [ fn[0],
+        0,
+      fn[1]]:   // Otherwise         
+        let(fn=Parabola(a,x=x_sect[p-1],o=o,f=f,n=n))
+    [ fn[0],
+        0,
+      fn[1]]);
+
+function partAngle(p=1) =
+         ( len(p) > 1 ?       // Take an average of all partNos provided.
+                let(ps=[ for (i=p) x_sect[i-1]] )
+                ParabolaGradient(a,x=sumv(ps)/len(ps),angle=true)[0]:
+                // otherwise
+         ParabolaGradient(a,x=x_sect[p-1],angle=true)[0]);
+
+module pinConn1(pn=1, 
+                pin_radius=t/4, // Pin_radius thickness
+                pin_neck=t/3,  // Pin_neck thickness
+                a=0,           // Compensation angle   
+                cut_thru=1.5, // Cut thru depth
+                cci=1 // cylinder cube interface dimension
+                        // negative values = longer cylinder
+                        // positive values = longer neck vs cylinder
+                ){
+    // Translation to nominal part
+    translate([0,cut_thru,0])
+    translate(partCoord(p=pn,o=t/2,f=-t/4-t/4,n=100))                   
+    rotate([0,-partAngle(pn),0])
+    // Compensation angle for tolerances
+        translate([t/2,0,0])
+        rotate(a=a,v=[0,1,0])
+        translate([-t/2,0,0]) 
+    // Pin construction           
+    rotate([90,0,0])
+    union(){
+        translate([t/2,0,w/2+cut_thru])
+            cube([t,pin_neck,w+cut_thru*2+cci/2],center=true);
+        translate([0,0,cci/4])
+        cylinder(r=pin_radius,h=w+cut_thru*2-cci/2);
+}
+}
+
+module pinHole1(pn=1){
+    pinConn1(pn,
+        pin_radius=t/4+htol,
+        pin_neck=t/3+htol
+        );
+}
+
+// Maps to the center of the specified partno.
+module partTranslate(pn=1, xyz=[0,0,0], center=true) {
+    if(center) {
+        // Translate to center
+        coord = partCoord(p=[pn,pn+1],o=-xyz[1],f=xyz[0],n=100);
+        translate([0,-w/2+xyz[2],0])
+        translate(coord)
+        rotate([0,
+                -ParabolaGradient(a,x=coord[0],angle=true)[0],
+                0])
+        children();
+        }
+    else {
+        // Translate to edge
+        coord = partCoord(p=pn,,o=-xyz[1],f=xyz[0],n=100);
+        translate([0,xyz[2],0])
+        translate(coord)
+        rotate([0,
+                -ParabolaGradient(a,x=coord[0],angle=true)[0],
+                0])
+        children();
+        }
+}
+
+// bolt Assembly
+module boltAssembly(pn,
+            nb=3, // Number of bolts along parabola
+            wb=2,  // Number of bolts along width
+            db=htol-htol,   // Bolt depth, positioning 
+            bolt_size=[ 5,20]  // Bolt spec 5mm  M2.5, 20mm deep
+            ) { 
+    
+    for (k=[1:wb]) {
+    for (i=[1:nb]) {
+        
+    xyz=[-l_sect/2+l_sect*(i/(nb+1)),
+        -db,
+        -w/2+w*(k/(wb+1))];
+              
+    // Map to Part
+    partTranslate(pn=pn, xyz=xyz, center=true) 
+    
+    // Bolt assembly contruction
+    translate([0,0,-t])
+    union() {
+        bolt(bolt_size[0]
+            ,bolt_size[1]); // 5mm Bolt, M2.5, weight 8g
+        translate([0,0,bolt_size[1]-bolt_size[0]*0.8])
+        union(){
+            translate([0,0,bolt_size[0]*0.1])
+            flat_nut(bolt_size[0]); // M2.5 NUT
+  
+            translate([0,0,bolt_size[0]*0.1])
+            washer(bolt_size[0]);  // M2.5 Flat Washer            
+            washer(bolt_size[0]);  // 
+        }
+    }
+    }
+}
+}
+module boltHoles(pn) {
+    boltAssembly(pn,
+            db=tol,   // Bolt depth 
+            bolt_size=[ 5+2*htol,t+0.7*(5+2*htol)+tol]);  // Bolt spec 5mm  M2.5, 20mm deep);
+}
+
+// Creates an embossed id for each part number
+module partEmbossID(pn,
+                    spacing=4,                     // The spacing between imprints
+                    fillet=fillet,                 // The fillet to apply
+                    size=l_sect/no_of_sections/4, // The size of each imprint
+                    ) {
+    total_length=size*pn+spacing*(pn-1);
+    for (j=[1:pn]) {
+        xyz=[l_sect/2-total_length/2+j/pn*total_length,
+                                -t/2,
+                                0]; 
+        offset_3d(r=fillet/2){
+    partTranslate(pn=pn, 
+                    xyz=xyz, 
+                        center=false) {
+    if (size < fillet) {cube(1e-5,center=true);}
+    else {cube(size-fillet,center=true);}
+    }
+    }
+    } 
+}
+
+//for (i=[1:no_of_sections]) {
+//partNo(i);
 //}
-//panelBody(190,t,d,200);
-panelBody(334,t,d,200);
+
+//pn=no_of_sections/2-0;
+//translate([0,0,0])
+// partNo(pn);
+
+  
+
+
 
 
 
