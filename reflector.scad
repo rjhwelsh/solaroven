@@ -179,28 +179,10 @@ module partTranslate(pn=1, xyz=[0,0,0], center=true) {
 }
 
 // bolt Assembly
-module boltAssembly(pn,
-            nb=3, // Number of bolts along parabola
-            wb=2,  // Number of bolts along width
-            db=htol-htol,   // Bolt depth, positioning 
-            bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
-            hole=false
-            ) { 
-    
-    for (k=[1:wb]) {
-    for (i=[1:nb]) {
-        
-    xyz=[-l_sect/2+l_sect*(i/(nb+1)),
-        -db,
-        -w/2+w*(k/(wb+1))];
-              
-    // Map to Part
-    partTranslate(pn=pn, xyz=xyz, center=true) 
-    
-    // Bolt assembly contruction
-    translate([0,0,-t])
-    union() {
-        
+module boltAssembly(bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                    hole=false,         // Produce hole for bolt
+                    ){
+        union() {       
         if (!hole) {
             bolt(bolt_size[0]
                 ,bolt_size[1]); // 5mm Bolt, M2.5, weight 8g
@@ -233,11 +215,39 @@ module boltAssembly(pn,
               } //  Clearance           
         }
     }
+}
+
+module boltArray(pn,
+            nb=3, // Number of bolts along parabola
+            wb=2,  // Number of bolts along width
+            db=htol-htol,   // Bolt depth, positioning 
+            bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+            hole=false,
+            pin_length=t/2+t/4      // The amount of space used by pinConn1
+            ) { 
+    
+    l_array=l_sect-pin_length;
+                
+    for (k=[1:wb]) {
+    for (i=[1:nb]) {
+        
+    xyz=[-l_sect/2+l_array*(i/(nb+1)),
+        -db,
+        -w/2+w*(k/(wb+1))];
+              
+    // Map to Part
+    partTranslate(pn=pn, xyz=xyz, center=true) 
+    
+    // Bolt assembly contruction
+    translate([0,0,-t])
+    boltAssembly(bolt_size=bolt_size,  
+                 hole=hole
+                    );
     }
 }
 }
 module boltHoles(pn) {
-    boltAssembly(pn,
+    boltArray(pn,
             db=tol,   // Bolt depth 
             bolt_size=[ 5+2*htol,t+0.7*(5+2*htol)+tol],
             hole=true);  // Bolt spec 5mm  M2.5, 20mm deep);
@@ -265,9 +275,9 @@ module partEmbossID(pn,
     } 
 }
 
-for (i=[1:no_of_sections]) {
-partNo(3);
-}
+//for (i=[1:no_of_sections]) {
+partNo(1);
+//}
 
 
 
