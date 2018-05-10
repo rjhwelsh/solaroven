@@ -88,16 +88,20 @@ module basePart(p=1,  // Part no.
 
 module partNo(i) {
 // The main function for generating each part.
-    rotate([90,0,0])
+    //rotate([90,0,0])
     difference()
     {
     union() {
         basePart(i);
         pinConn1(pn=i,a=atan(htol/(t/4)));
-        partEmbossID(pn=i);
+        
     }   
         pinHole1(pn=i+1);
         boltHoles(pn=i);
+    
+        translate([0,-w,0])
+        partEmbossID(pn=i);
+        partEmbossID(pn=i);
     }
 }
 
@@ -255,28 +259,75 @@ module boltHoles(pn) {
 
 // Creates an embossed id for each part number
 module partEmbossID(pn,
-                    spacing=4,                     // The spacing between imprints
-                    fillet=fillet,                 // The fillet to apply
-                    size=l_sect/no_of_sections/4, // The size of each imprint
+                    width_spacing=[fillet,1],
+                    length_spacing=[t/2+fillet,1,5],    // The spacing between edges, imprints and groups.
+                    fillet=fillet/2,                 // The fillet to apply
+                    length=l_sect-t/2-t/4,        // The total length of all the imprints
+                    width=t,                        // The total width of all the imprints 
+                    depth=w/100,                       // The impression depth into the part
+                    group=[2,2],                        // Group into collections of 4x4
+         // includes The compensation for the pinConn1
                     ) {
-    total_length=size*pn+spacing*(pn-1);
+        
+    // size of spacings
+    size1=2*[length_spacing[0],  //edge 
+             width_spacing[0],
+             0] +                //imprint
+                        [(no_of_sections/group[1]-1)*length_spacing[1],
+                        (group[1]-1)*width_spacing[1],
+                        0 ] +  
+                                // group
+                        [(no_of_sections/group[1]/group[0]-1)*length_spacing[2],
+                        0,
+                        0 ]  
+                        ;
+                        
+    echo("SIZE1",size1);
+    // size of cube
+    size2=[length,width,0]-size1;
+    echo("SIZE2",size2); 
+                        
+    size3=[size2[0]*group[1]/no_of_sections,
+           size2[1]/group[1],
+                        0];
+                                          
+    // size of each imprint 
+    size0=size3+[0,0,2*depth]; // The size of each imprint, l x w
+    echo("SIZE0",size0);
+    // size of cube (-fillet compensation)                    
+    size=[ max(size0[0]-2*fillet,1e-5),
+           max(size0[1]-2*fillet,1e-5),
+           max(size0[2]-2*fillet,1e-5)
+                        ];
+    echo("SIZE=",size); 
+ 
     for (j=[1:pn]) {
-        xyz=[l_sect/2-total_length/2+j/pn*total_length,
-                                -t/2,
-                                0]; 
-        offset_3d(r=fillet/2){
-    partTranslate(pn=pn, 
-                    xyz=xyz, 
-                        center=false) {
-    if (size < fillet) {cube(1e-5,center=true);}
-    else {cube(size-fillet,center=true);}
-    }
+        
+        p=floor((j-1)/group[1]);
+        q=(j-1)%group[1];
+        r=floor((j-1)/(group[0]*group[1]));
+        
+        x0=size0[0]/2+length_spacing[0];
+        y0=size0[1]/2+width_spacing[0];
+        
+        x=x0+p*(size0[0]+length_spacing[1])+r*(length_spacing[2]-length_spacing[1]);
+        y=y0+q*(size0[1]+width_spacing[1]);
+        
+        offset_3d(r=fillet){
+        partTranslate(pn=pn, 
+                    xyz=[x,y-t,0], 
+                        center=false) 
+            cube(size=[size[0],
+                       size[2],
+                       size[1]], center=true);
     }
     } 
 }
 
+echo(6/5);
+
 //for (i=[1:no_of_sections]) {
-partNo(1);
+partNo(7);
 //}
 
 
