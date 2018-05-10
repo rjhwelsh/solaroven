@@ -97,6 +97,7 @@ module partNo(i) {
         
     }   
         pinHole1(pn=i+1);
+        
         boltHoles(pn=i);
     
         translate([0,-w,0])
@@ -161,24 +162,65 @@ module pinHole1(pn=1){
 // Maps to the center of the specified partno.
 module partTranslate(pn=1, xyz=[0,0,0], center=true) {
     if(center) {
-        // Translate to center
-        coord = partCoord(p=[pn,pn+1],o=-xyz[1],f=xyz[0],n=100);
-        translate([0,-w/2+xyz[2],0])
-        translate(coord)
-        rotate([0,
-                -ParabolaGradient(a,x=coord[0],angle=true)[0],
-                0])
-        children();
+        // Translate to another part?
+        if ( len(pn)==2 ) { 
+                coord0= partCoord(p=[pn[0],pn[0]+1],o=-xyz[0][1],f=xyz[0][0],n=100);
+                coord1= partCoord(p=[pn[1],pn[1]+1],o=-xyz[1][1],f=xyz[1][0],n=100);
+                coord =  coord1 - coord0;                      
+                        // Translates from pn=0 to pn=1
+               angle0 =-ParabolaGradient(a,x=coord0[0],angle=true)[0];
+               angle1 =-ParabolaGradient(a,x=coord1[0],angle=true)[0];
+               angle = angle1 - angle0;
+            
+            // Translate only according to relative
+                translate([0,xyz[1][2]-xyz[0][2],0])
+                translate(coord1) 
+                rotate(a=angle, v=[0, 1, 0])
+                translate(-coord0) // coord0 is used as 0,0,0
+                children();
+            }  
+        else {
+                coord = partCoord(p=[pn,pn+1],o=-xyz[1],f=xyz[0],n=100);
+                angle =-ParabolaGradient(a,x=coord[0],angle=true)[0];
+                            
+                // Translate to center
+                translate([0,-w/2+xyz[2],0])
+                translate(coord)
+                rotate(a=angle, v=[0, 1, 0])
+                children();
+            }
+
+        
         }
     else {
-        // Translate to edge
-        coord = partCoord(p=pn,,o=-xyz[1],f=xyz[0],n=100);
-        translate([0,xyz[2],0])
-        translate(coord)
-        rotate([0,
-                -ParabolaGradient(a,x=coord[0],angle=true)[0],
-                0])
-        children();
+        if ( len(pn)==2 ) { 
+            // Translates from pn=0 to pn=1
+            coord0 = partCoord(p=pn[0],o=-xyz[0][1],f=xyz[0][0],n=100);
+            coord1 = partCoord(p=pn[1],o=-xyz[1][1],f=xyz[1][0],n=100);
+            coord = coord1 - coord0;
+            // Rotates from pn=0 to pn=1  
+            angle0 =-ParabolaGradient(a,x=coord0[0],angle=true)[0];
+            angle1 =-ParabolaGradient(a,x=coord1[0],angle=true)[0];
+            angle = angle1 - angle0;
+            
+                // Translate only according to relative'
+                translate([0,xyz[1][2]-xyz[0][2],0])
+                translate(coord1)
+                rotate(a=angle, v=[0, 1, 0])
+                translate(-coord0) // coord0 is used as 0,0,0
+                children();
+            }
+            
+        else {        
+            coord = partCoord(p=pn,o=-xyz[1],f=xyz[0],n=100);
+            angle =-ParabolaGradient(a,x=coord[0],angle=true)[0];
+            
+                    // Translate to edge
+                translate([0,xyz[2],0])
+                translate(coord)
+                rotate(a=angle, v=[0, 1, 0])
+                children();
+            }
         }
 }
 
@@ -200,7 +242,7 @@ module boltAssembly(bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
             union() {
             translate([0,0,-k])
             cylinder(r=e/2,h=2*k,$fn=6);
-            cylinder(r=dia/2,h=bolt_size[1]);
+            cylinder(r=dia/2,h=bolt_size[1]); // Double bolt head for cutting thru material
             }
         }
                 
@@ -220,41 +262,82 @@ module boltAssembly(bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
         }
     }
 }
+// Provides an offset pattern for nesting parts together.
+    // i.e the protruding bolt shaft, nut and washer.
 
+function boltWidthSpacing(wb) =
+    w*(1/(wb+1));
+
+function boltLengthSpacing(nb, pin_length = t/2+t/4 ) =
+    let( l_array=l_sect-pin_length )
+        l_array*(1/(nb+1))
+
+function boltOffset(pn,bolt_size,wb) =
+        pow(-1,pn%2)*(boltWidthSpacing(wb)/2);
+
+// Array over the surface of a part
+module partSurfaceArray(pn, nb, // Number along parabolic curve
+                            wb, // Number along width
+                            db, // Depth positioning
+                            pin_length=t/2+t/4      // The amount of space used by pinConn1
+    ) {             
+    for (k=[1:wb]) {
+    for (i=[1:nb]) {        
+        xyz=[-l_sect/2+i*boltLengthSpacing(nb,pin_length),
+            -db,
+            -w/2+k*boltWidthSpacing(wb)];
+        
+        // Map to Part
+        partTranslate(pn=pn, xyz=xyz, center=true) 
+        children();
+    }
+}
+}
+
+// An array of bolts for assembly of the reflective material
 module boltArray(pn,
             nb=3, // Number of bolts along parabola
             wb=2,  // Number of bolts along width
-            db=htol-htol,   // Bolt depth, positioning 
+            db=0,   // Bolt depth, positioning 
             bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
-            hole=false,
-            pin_length=t/2+t/4      // The amount of space used by pinConn1
+            hole=false 
             ) { 
-    
-    l_array=l_sect-pin_length;
                 
-    for (k=[1:wb]) {
-    for (i=[1:nb]) {
-        
-    xyz=[-l_sect/2+l_array*(i/(nb+1)),
-        -db,
-        -w/2+w*(k/(wb+1))];
-              
-    // Map to Part
-    partTranslate(pn=pn, xyz=xyz, center=true) 
-    
+    // Offset bolts (for nesting)
+    translate([0,boltOffset(pn,bolt_size),0])
+    partSurfaceArray(pn, nb, wb, db) 
     // Bolt assembly contruction
     translate([0,0,-t])
     boltAssembly(bolt_size=bolt_size,  
                  hole=hole
                     );
     }
-}
-}
-module boltHoles(pn) {
+
+// An array of bolt holes to match the bolts.
+module boltHoles(pn,
+                bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                ) {
+      // bolt array                  
     boltArray(pn,
             db=tol,   // Bolt depth 
-            bolt_size=[ 5+2*htol,t+0.7*(5+2*htol)+tol],
-            hole=true);  // Bolt spec 5mm  M2.5, 20mm deep);
+            bolt_size=[ bolt_size[0]+2*htol,t+0.7*(bolt_size[0]+2*htol)+tol],
+            hole=true); 
+}
+
+// Provides a pattern for nesting bolts inside each subsequent parabola.
+module boltNest(pn,
+                bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                ) {
+    
+    partTranslate(pn=[pn+1,pn], xyz=[[0,0,0],[0,0,0]], center=true) 
+    // Offset bolts (for nesting)
+    translate([0,boltOffset(pn+1,bolt_size),0])
+    partSurfaceArray(pn=pn+1, nb=3, wb=2, db=tol) 
+    // Bolt assembly contruction
+    translate([0,0,-t])
+    cylinder(r=bolt_size[0]+htol+tol,
+             h=bolt_size[1]+htol+tol);
+                    
 }
 
 // Creates an embossed id for each part number
@@ -282,10 +365,11 @@ module partEmbossID(pn,
                         0 ]  
                         ;
                         
-    echo("SIZE1",size1);
-    // size of cube
+    //echo("SIZE1",size1);
+    
+                        // size of cube
     size2=[length,width,0]-size1;
-    echo("SIZE2",size2); 
+    //echo("SIZE2",size2); 
                         
     size3=[size2[0]*group[1]/no_of_sections,
            size2[1]/group[1],
@@ -293,13 +377,14 @@ module partEmbossID(pn,
                                           
     // size of each imprint 
     size0=size3+[0,0,2*depth]; // The size of each imprint, l x w
-    echo("SIZE0",size0);
+    //echo("SIZE0",size0);
+    
     // size of cube (-fillet compensation)                    
     size=[ max(size0[0]-2*fillet,1e-5),
            max(size0[1]-2*fillet,1e-5),
            max(size0[2]-2*fillet,1e-5)
                         ];
-    echo("SIZE=",size); 
+    //echo("SIZE=",size); 
  
     for (j=[1:pn]) {
         
@@ -324,11 +409,21 @@ module partEmbossID(pn,
     } 
 }
 
-echo(6/5);
 
 //for (i=[1:no_of_sections]) {
-partNo(7);
+//partNo(6);
+
+difference() {
+    partNo(7);
+    // Map to Part
+    boltNest(pn=7);
+}
+// boltHoles(pn=6);
+//boltHoles(pn=7);
 //}
 
-
+boltAssembly(hole=true);
+cylinder(r=5,h=20);
+cylinder(r=5+htol+tol,
+             h=20+htol+tol);
 
