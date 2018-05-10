@@ -99,6 +99,7 @@ module partNo(i) {
         pinHole1(pn=i+1);
         
         boltHoles(pn=i);
+        boltNest(pn=i);
     
         translate([0,-w,0])
         partEmbossID(pn=i);
@@ -270,10 +271,10 @@ function boltWidthSpacing(wb) =
 
 function boltLengthSpacing(nb, pin_length = t/2+t/4 ) =
     let( l_array=l_sect-pin_length )
-        l_array*(1/(nb+1))
+        l_array*(1/(nb+1));
 
 function boltOffset(pn,bolt_size,wb) =
-        pow(-1,pn%2)*(boltWidthSpacing(wb)/2);
+        pow(-1,pn)*(boltWidthSpacing(wb)/4);
 
 // Array over the surface of a part
 module partSurfaceArray(pn, nb, // Number along parabolic curve
@@ -285,7 +286,7 @@ module partSurfaceArray(pn, nb, // Number along parabolic curve
     for (i=[1:nb]) {        
         xyz=[-l_sect/2+i*boltLengthSpacing(nb,pin_length),
             -db,
-            -w/2+k*boltWidthSpacing(wb)];
+            -w/2+(k)*boltWidthSpacing(wb)];
         
         // Map to Part
         partTranslate(pn=pn, xyz=xyz, center=true) 
@@ -302,9 +303,12 @@ module boltArray(pn,
             bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
             hole=false 
             ) { 
+      
+    echo("boltOffset=",boltOffset(pn,bolt_size,2));
                 
     // Offset bolts (for nesting)
-    translate([0,boltOffset(pn,bolt_size),0])
+    translate([0,boltOffset(pn,bolt_size,wb),0])
+    
     partSurfaceArray(pn, nb, wb, db) 
     // Bolt assembly contruction
     translate([0,0,-t])
@@ -328,10 +332,12 @@ module boltHoles(pn,
 module boltNest(pn,
                 bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
                 ) {
-    
+                    
+    echo("boltOffset=",boltOffset(pn+1,bolt_size,2));
     partTranslate(pn=[pn+1,pn], xyz=[[0,0,0],[0,0,0]], center=true) 
     // Offset bolts (for nesting)
-    translate([0,boltOffset(pn+1,bolt_size),0])
+    translate([0,boltOffset(pn+1,bolt_size,2),0])
+    
     partSurfaceArray(pn=pn+1, nb=3, wb=2, db=tol) 
     // Bolt assembly contruction
     translate([0,0,-t])
@@ -410,20 +416,11 @@ module partEmbossID(pn,
 }
 
 
-//for (i=[1:no_of_sections]) {
-//partNo(6);
 
-difference() {
-    partNo(7);
-    // Map to Part
-    boltNest(pn=7);
+
+
+for (i=[1:no_of_sections]) {
+    partNo(i);
 }
-// boltHoles(pn=6);
-//boltHoles(pn=7);
-//}
 
-boltAssembly(hole=true);
-cylinder(r=5,h=20);
-cylinder(r=5+htol+tol,
-             h=20+htol+tol);
 
