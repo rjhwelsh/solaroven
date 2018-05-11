@@ -6,7 +6,7 @@ $fn=121;
 
 scale=0.25;     // model scaled to this size on slic3r
 tol=0.2/scale;  // print manufacturing best tolerance
-htol=0.2/scale/2+tol; // hole clearance
+htol=0.1/scale/2+tol; // hole clearance
 
 // Overall Dimensions
 f=150; // parabola focus height, mm
@@ -93,7 +93,13 @@ module partNo(i) {
     {
     union() {
         basePart(i);
-        pinConn1(pn=i,a=atan(htol/(t/4)));
+        
+        // Compensation angle
+        
+        // Positive for free hanging surfaces
+        // Negative values for weight bearing surfaces
+        compAngle=atan(htol/(t/4));
+        pinConn1(pn=i,a=compAngle);
         
     }   
         pinHole1(pn=i+1);
@@ -342,7 +348,8 @@ module boltHoles(pn,
 // Provides a pattern for nesting bolts inside each subsequent parabola.
 module boltNest(pn,
                 nestPart,
-                bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep        
+                tol=[tol, htol]    // Tolerances for clearance
                 ) {
                     
     echo("boltOffset=",boltOffset(pn+1,bolt_size,2));
@@ -352,11 +359,11 @@ module boltNest(pn,
     // Offset bolts (for nesting)
     translate([0,boltOffset(nestPart,bolt_size,2),0])
     
-    partSurfaceArray(pn=nestPart, nb=3, wb=2, db=tol) 
+    partSurfaceArray(pn=nestPart, nb=3, wb=2, db=tol[0]) 
     // Bolt assembly contruction
     translate([0,0,-t])
-    cylinder(r=bolt_size[0]+htol+tol,
-             h=bolt_size[1]+htol+tol);
+    cylinder(r=bolt_size[0]+tol[1]+tol[0],
+             h=bolt_size[1]+tol[1]+tol[0]);
                     
 }
 
@@ -434,7 +441,7 @@ module partEmbossID(pn,
 
 
 //for (i=[1:no_of_sections]) {
-i=2;
+i=4;
 partNo(i);
 //}
 
