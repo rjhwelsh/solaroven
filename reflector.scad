@@ -99,7 +99,18 @@ module partNo(i) {
         pinHole1(pn=i+1);
         
         boltHoles(pn=i);
-        boltNest(pn=i);
+    
+        // Nest with the centre parts at the top
+        // Outer parts at the bottom
+        if ( i < no_of_sections/2 ) {
+            if ( i > 1 ) 
+                { boltNest(pn=i,nestPart=i-1); }
+        }  
+        else {
+            if ( i < no_of_sections ) 
+                { boltNest(pn=i,nestPart=i+1); }
+        }
+
     
         translate([0,-w,0])
         partEmbossID(pn=i);
@@ -330,15 +341,18 @@ module boltHoles(pn,
 
 // Provides a pattern for nesting bolts inside each subsequent parabola.
 module boltNest(pn,
+                nestPart,
                 bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
                 ) {
                     
     echo("boltOffset=",boltOffset(pn+1,bolt_size,2));
-    partTranslate(pn=[pn+1,pn], xyz=[[0,0,0],[0,0,0]], center=true) 
+                    
+    // Nests pn+1 into pn                 
+    partTranslate(pn=[nestPart,pn], xyz=[[0,0,0],[0,0,0]], center=true) 
     // Offset bolts (for nesting)
-    translate([0,boltOffset(pn+1,bolt_size,2),0])
+    translate([0,boltOffset(nestPart,bolt_size,2),0])
     
-    partSurfaceArray(pn=pn+1, nb=3, wb=2, db=tol) 
+    partSurfaceArray(pn=nestPart, nb=3, wb=2, db=tol) 
     // Bolt assembly contruction
     translate([0,0,-t])
     cylinder(r=bolt_size[0]+htol+tol,
@@ -419,8 +433,9 @@ module partEmbossID(pn,
 
 
 
-for (i=[1:no_of_sections]) {
-    partNo(i);
-}
+//for (i=[1:no_of_sections]) {
+i=2;
+partNo(i);
+//}
 
 
