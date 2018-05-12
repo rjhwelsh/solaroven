@@ -93,6 +93,12 @@ module basePart(p=1,  // Part no.
         }
 }
 
+module claspNo(i){
+    // The main function for generated the tube clasps.
+    TubeConn1(clasp[i]);
+    
+}
+
 module legNo(i) {
 // The main function for generating load bearing legs.
     partLeg(feet[i]);
@@ -100,7 +106,6 @@ module legNo(i) {
 
 module partNo(i) {
 // The main function for generating each part.
-    //rotate([90,0,0])
     difference()
     {
     union() {
@@ -332,12 +337,16 @@ module boltHole(bolt_size=[ 5,t],  // Bolt spec 5mm dia,  M2.5, 20mm deep
                 ) {
                     
      if ( center ) {
-         translate([0,0,-(bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol)/2])
+         translate([0,0,-(bolt_size[1]+tol)/2])
         // bolt assembly                  
-        boltAssembly(bolt_size=[bolt_size[0]+2*htol,bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol],hole=true); 
+        boltAssembly(bolt_size=[bolt_size[0]+2*htol,
+                    bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol-bolt_size[0]*0.3],
+                    hole=true); 
      } 
      else {
-          boltAssembly(bolt_size=[bolt_size[0]+2*htol,bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol],hole=true); 
+          boltAssembly(bolt_size=[bolt_size[0]+2*htol,
+                        bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol-bolt_size[0]*0.3],
+                        hole=true); 
      }
 }
 
@@ -726,9 +735,8 @@ module TubeConn1(i,
      translate([-mi*(tube+3*it)/2,0,(3*it+tol)/2])
     cube([tube+3*it,tube+2*it+2*b,3*it+tol],center=true); 
     }
-  
     
-   // bolt holes
+    // bolt holes
     translate([0,0,y2+b/2])
     translate([0,-w/2,0])
     rotate([0,-90,0])
@@ -739,7 +747,6 @@ module TubeConn1(i,
     rotate([0,-90,0])
     boltHole(bolt_size=[bolt_size[0],it*2],center=true); 
     
-    
     // Matching bolt holes for parabola
     boltHoles(i,
                 bolt_size,  // Bolt spec 5mm dia,  M2.5, 20mm deep
@@ -747,15 +754,18 @@ module TubeConn1(i,
                 da=0
                 );
     } 
+    
+
 }
 //
 
 i=4;
 //partNo(i);
 TubeConn1(i);
+TubeConn1(i+1);
 
 //for (i=[1:no_of_sections]) { partNo(i); };
 // for (i=[1:2]) { legNo(i); };
-
+// for (i=[1:2]) { claspNo(i); };
 
 
