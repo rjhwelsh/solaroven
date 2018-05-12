@@ -682,8 +682,8 @@ module TubeConn1(i,
     // Parabola interface to reflector
     // fillet for improved strength
     difference() {
-    fillet(r=fillet,steps=5) {  // uncomment for fillets
-    //    union(){
+    //fillet(r=fillet,steps=5) {  // uncomment for fillets
+        union(){
         
     // Offset bolts (for nesting)
     translate([0,wa/2+woffset,0])
@@ -758,10 +758,15 @@ module TubeConn1(i,
     
 
 }
-//
+// part 4 ( tube clasp)
 
-for (i=[1:no_of_sections]) { partNo(i); };
-for (i=[1:2]) { legNo(i); };
-for (i=[1:2]) { claspNo(i); };
+// part 3 (legs)
+
+// pin joints
+
+
+//for (i=[1:no_of_sections]) { partNo(i); };
+//for (i=[1:2]) { legNo(i); };
+//for (i=[1:2]) { claspNo(i); };
 
 
