@@ -672,7 +672,8 @@ module TubeConn1(i,
     // Parabola interface to reflector
     // fillet for improved strength
     difference() {
-    fillet(r=10,steps=5) {
+    //fillet(r=10,steps=5) {  // uncomment for fillets
+        union(){
     // Offset bolts (for nesting)
     translate([0,wa/2+woffset,0])
     basePart(i,
@@ -687,20 +688,23 @@ module TubeConn1(i,
     rotate([0,(90-ata),0])   
     translate([0,0,-atlw/2])
     cube([it,it,atlw],center=true);         
-   
  
    // First bolt section cuboid
-    translate([0,0,y2])
+    //translate([0,0,y2])
     translate([0,-w/2,0])
-    translate([it/2,0,bolt_section/2])
-    cube([it,wa,bolt_section],center=true); 
-       
+    translate([it/2,0,y1/2])
+    offset_3d(r=fillet/2){
+        cube([it-fillet,wa-fillet,y1-fillet],center=true); 
+     }
+     
      // Top bolted section cubiod
     translate([0,0,y3])
     translate([0,-w/2,0])
     translate([it/2,0,bolt_section/2])
-    cube([it,wa,bolt_section],center=true); 
-   
+    offset_3d(r=fillet/2){
+        cube([it-fillet,wa-fillet,b-fillet],center=true); 
+    }
+    
    // Tube exterior
     translate([0,-w/2,0])
     translate([0,0,y0])
