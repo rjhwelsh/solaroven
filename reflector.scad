@@ -32,6 +32,7 @@ x_sect=cat(
             
 feet=[3,6]; // The parabolic sections which will have the feet attached 
 clasp=[no_of_sections/2,no_of_sections/2+1];; // Parabolic sections with a clasp attachment
+echo("clasp=",clasp); //sections on which to attach clasp.   
             
 echo("x max=",x_max,"y max", y_max);   
 echo("x sections=",x_sect); 
@@ -759,14 +760,13 @@ module TubeConn1(i,
 
 }
 // part 4 ( tube clasp)
+claspNo(2);
 
 // part 3 (legs)
 
-// pin joints
-
 
 //for (i=[1:no_of_sections]) { partNo(i); };
-for (i=[1:2]) { legNo(i); };
-for (i=[1:2]) { claspNo(i); };
+//for (i=[1:2]) { legNo(i); };
+//for (i=[1:2]) { claspNo(i); };
 
 
