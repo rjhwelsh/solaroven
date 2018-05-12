@@ -31,11 +31,11 @@ x_sect=cat(
             
             
 feet=[3,6]; // The parabolic sections which will have the feet attached 
+clasp=[no_of_sections/2,no_of_sections/2+1];; // Parabolic sections with a clasp attachment
             
 echo("x max=",x_max,"y max", y_max);   
 echo("x sections=",x_sect); 
 echo("l sections=",l_sect);      
-
 
 // PLA Strength Calc
 ali_density=2700; // kg/m^3
@@ -645,14 +645,15 @@ module TubeConn1(i,
        // Compensate for tube and bolt section.     
         h=tube/2+bolt_section;
         r=tube/2; // The radius of the tube section.    
-        b=bolt_section; // The length of the bolt section.    
+        b=bolt_section; // The length of the bolt section. 
+        mi=(i > no_of_sections/2 ? 1 : -1); // Mirror section var   
             
     // Part coordinates
-        pc=partCoord(p=i+1,o=-it/2,f=-it/2,n=$fn);
+        pc=partCoord(p=i+(1+mi)/2,o=-it/2,f=mi*-it/2,n=$fn);
         xi=pc[0];
         yi=pc[2];
             
-        xj=r+it/2;
+        xj=mi*(r+it/2);
         yj=f;
             
         y0=f; // The focus point
@@ -684,15 +685,15 @@ module TubeConn1(i,
    // Cuboid from section on face to clasp
     translate([xi,0,yi])
     translate([0,woffset,0])
-    rotate([-(90-aw)/2,0,0])
-    rotate([0,(90-ata),0])   
-    translate([0,0,-atlw/2])
+    rotate([-mi*(90-aw)/2,0,0])
+    rotate([0,mi*90-ata,0])   
+    translate([0,0,-atlw/2]) 
     cube([it,it,atlw],center=true);         
  
    // First bolt section cuboid
     //translate([0,0,y2])
     translate([0,-w/2,0])
-    translate([it/2,0,y1/2])
+    translate([mi*it/2,0,y1/2])
     offset_3d(r=fillet/2){
         cube([it-fillet,wa-fillet,y1-fillet],center=true); 
      }
@@ -700,7 +701,7 @@ module TubeConn1(i,
      // Top bolted section cubiod
     translate([0,0,y3])
     translate([0,-w/2,0])
-    translate([it/2,0,bolt_section/2])
+    translate([mi*it/2,0,bolt_section/2])
     offset_3d(r=fillet/2){
         cube([it-fillet,wa-fillet,b-fillet],center=true); 
     }
@@ -722,7 +723,7 @@ module TubeConn1(i,
     rotate([90,0,0])
     union() {
     cylinder(r=tube/2,h=3*it);
-     translate([-(tube+3*it)/2,0,(3*it+tol)/2])
+     translate([-mi*(tube+3*it)/2,0,(3*it+tol)/2])
     cube([tube+3*it,tube+2*it+2*b,3*it+tol],center=true); 
     }
   
@@ -740,7 +741,7 @@ module TubeConn1(i,
     
     
     // Matching bolt holes for parabola
-            boltHoles(i,
+    boltHoles(i,
                 bolt_size,  // Bolt spec 5mm dia,  M2.5, 20mm deep
                 t=t+it,
                 da=0
@@ -749,7 +750,7 @@ module TubeConn1(i,
 }
 //
 
-i=5;
+i=4;
 //partNo(i);
 TubeConn1(i);
 
