@@ -484,12 +484,11 @@ module partEmbossID(pn,
 
 // Create a leg that connects to part pn
 module partLeg(i,
-               foot=[21,21,4], // foot dimensions, [x,y,z,]
-               fthick=1.2,      // foot thickness, t
                 it=0.5*t,       // interface thickness
                 compA=10,        // compensation angle
                 legDim=[20,w,t/2],  // Leg dimensions, x,y, and thickness of section
-                fillet=3            // fillet radius
+                fillet=3,            // fillet radius
+                foot=[21,21,4,1.2], // foot dimensions, [x,y,z,t]
                 ) {
 
 
