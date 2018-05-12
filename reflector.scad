@@ -13,7 +13,7 @@ f=150; // parabola focus height, mm
 fillet=5; // fillet radius, mm 
 
 a=ParabolaFocus(f);
-w=50; // overall part width, mm
+w=70; // overall part width, mm
 t=14*2; // nominal thickness, mm
 l=800; // reflector length available, mm
 
@@ -75,7 +75,7 @@ echo("Radius=",pow(ReqArea/3.14,0.5)); //mm
 
 module basePart(p=1,  // Part no.
                 a=a,  // Parabolic a from a*x^2
-                w=w,  // Extrusion, width, w
+                wb=w,  // Extrusion, width, wb
                 o=[fillet,t-fillet],  // Normal vector from surface parabola at 0
                 f=[fillet,-fillet],  // Tangent Length from each edge, x0+f, x1+f
                 fillet=fillet,
@@ -84,23 +84,13 @@ module basePart(p=1,  // Part no.
       translate([0,-fillet,0])
         offset_3d(r=fillet){
         rotate([90,0,0])
-        linear_extrude(height=w-2*fillet)
+        linear_extrude(height=wb-2*fillet)
         ParabolaPolygon(a=a,
             x=[x_sect[p-1],x_sect[p]],
             o=o,
             f=f);
         }
 }
-
-// Generates a parabolic slot for part no
-module Slot(p=1,
-            gat=0.9, // Gauge thickness, here ali 0.9mm
-            
-    ) 
-{
-    basePart(p=i,w=w+2*tol,o=[t/2-gat/2,t/2+gat/2],f=[tol,-tol],fillet=tol)
-}
-
 
 module legNo(i) {
 // The main function for generating load bearing legs.
@@ -121,7 +111,7 @@ module partNo(i) {
         // Negative values for weight bearing surfaces
         compAngle=atan(htol/(t/4));
         
-        if ( i <= feet[0] && i < feet[1] ) {
+        if ( i >= feet[0] && i < feet[1] ) {
             pinConn1(pn=i,a=-compAngle);
         }
         else {
@@ -142,6 +132,9 @@ module partNo(i) {
         translate([0,-w,0])
         partEmbossID(pn=i);
         partEmbossID(pn=i);
+            
+        // Slot for sheet metal.
+        Slot(i);   
     }
 }
 
@@ -181,7 +174,17 @@ function partNormal(p=1,o=0,f=0,n=$fn,
            Lnx,          // Lnx, Perpendicular Length to xc
            Lny          // Lny, Perpendicular Length to yc
                 ];
-
+                
+                
+// Generates a parabolic slot for part no
+module Slot(p=1,
+            gat=0.9, // Gauge thickness, here ali 0.9mm            
+            cutthru=5 // Cutthru depth, use more than PinConn1 here
+    ) 
+{
+    translate([0,cutthru,0])
+    basePart(p=i,wb=w+2*tol+2*cutthru,o=[t/2-gat/2,t/2+gat/2],f=[tol,-tol],fillet=tol);
+}
 module pinConn1(pn=1, 
                 pin_radius=t/4, // Pin_radius thickness
                 pin_neck=t/3,  // Pin_neck thickness
@@ -330,7 +333,8 @@ function boltLengthSpacing(nb, pin_length = t/2+t/4 ) =
         l_array*(1/(nb+1));
 
 function boltOffset(pn,bolt_size,wb) =
-        pow(-1,pn)*(boltWidthSpacing(wb)/4);
+        ( wb == 1 ? pow(-1,pn)*(boltWidthSpacing(wb)/(2)):
+                    pow(-1,pn)*(boltWidthSpacing(wb)/(4)));
 
 // Array over the surface of a part
 module partSurfaceArray(pn, nb, // Number along parabolic curve
@@ -376,14 +380,15 @@ module boltArray(pn,
 // An array of bolt holes to match the bolts.
 module boltHoles(pn,
                 bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                t=t,
+                da=0, // Depth adjustment
                 ) {
       // bolt array                  
     boltArray(pn,
-            db=tol,   // Bolt depth 
+            db=da+tol,   // Bolt depth 
             bolt_size=[ bolt_size[0]+2*htol,t+0.7*(bolt_size[0]+2*htol)+tol],
             hole=true); 
 }
-
 
 // Provides the part no. to nest with part no. i
 function nestedPart(i) =
@@ -436,8 +441,8 @@ module boltNest(pn,
 
 // Creates an embossed id for each part number
 module partEmbossID(pn,
-                    width_spacing=[fillet,1],
-                    length_spacing=[t/2+fillet,1,5],    // The spacing between edges, imprints and groups.
+                    width_spacing=[fillet,4],
+                    length_spacing=[t/2+fillet,4,8],    // The spacing between edges, imprints and groups.
                     fillet=fillet/2,                 // The fillet to apply
                     length=l_sect-t/2-t/4,        // The total length of all the imprints
                     width=t,                        // The total width of all the imprints 
@@ -608,13 +613,67 @@ module partLeg(i,
 
 
 
-//for (i=[1:no_of_sections]) {
-i=2;
-partNo(i);
-//partLeg(i);
-//boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0],fillet=fillet);
+// Create a connection for the solar tube
+module TubeConn1(i,
+        it=t/2,
+        wb=1, // Number of bolts across width
+        bolt_size=[ 5,20],
+        wa=w/2, // The width of the Tube connection
+        compA=0,
+        h=-50
+        ) {
+            
+            
+    // Part coordinates
+        pc=partCoord(p=i+1,o=it/2,f=-it/2,n=$fn);
+        at=( i <= no_of_sections/2 ? partAngle(p=i+1)-compA : partAngle(p=i+1)+compA); // tangent
+             
+        // Embed into middle of interface o=-t-it/2
+        N=partNormal(p=i+1,o=it/2,f=-it/2,n=$fn,a=compA,h=h);
+        xc=N[0];
+        yc=N[1];
+        Lnx=N[2];
+        Lny=N[3];
+            
+        woffset=-w/2+boltOffset(i,bolt_size,wb);
+            
+    // Parabola interface to reflector
+    difference() {
+        // Offset bolts (for nesting)
+        translate([0,wa/2+woffset,0])
+        basePart(i,
+            wb=wa,
+            o=[0-fillet, -it+fillet]);
+        boltHoles(i,
+                bolt_size,  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                t=t+it,
+                da=0
+                ); 
+    }
+    
+   // Cuboid from section on face to first bolts
+    translate([0,0,yc])
+    rotate([0,-at,0])
+    translate([0,woffset,0])
+    translate([0,0,-Lny/2])
+    cube([it,wa,Lny],center=true);         
+            
+   // First bolt section cuboid
+   
+   
+   // Tube clasp
+   
+   
+   // Top bolted section cubiod
+}
+//
 
+i=5;
+//partNo(i);
+TubeConn1(i);
 
-//}
+//for (i=[1:no_of_sections]) { partNo(i); };
+// for (i=[1:2]) { legNo(i); };
+
 
 
