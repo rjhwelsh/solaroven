@@ -16,6 +16,7 @@ a=ParabolaFocus(f);
 w=70; // overall part width, mm
 t=14*2; // nominal thickness, mm
 l=800; // reflector length available, mm
+tube=127.4; // Tube diameter, mm
 
 x_max=ParabolaTravel(a=a,x=0,l=l/2,step=0,n=1000); // maximum x dimension, mm       
 y_max=Parabola(a=a,x=x_max)[1];
@@ -163,10 +164,10 @@ function partNormal(p=1,o=0,f=0,n=$fn,
                     h=0  // extra height
                     ) =
     let(A=( p[0] <= no_of_sections/2 ? partAngle(p)-a : partAngle(p)+a),
-        XYZ=partCoord(p,-o,f,n)+[0,0,h])
-    let( xc = XYZ[0]+XYZ[2]*tan(A),
-         yc = XYZ[2]+XYZ[0]/tan(A),
-         Lnx = XYZ[2]/cos(A),
+        XYZ=partCoord(p,-o,f,n))
+    let( xc = XYZ[0]+(XYZ[2]+h)*tan(A),
+         yc = (XYZ[2]+h)+XYZ[0]/tan(A),
+         Lnx = (XYZ[2]+h)/cos(A),
          Lny = XYZ[0]/sin(A)
                 )
         [ xc,            // xc, xintersection
@@ -325,6 +326,21 @@ module boltAssembly(bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
 // Provides an offset pattern for nesting parts together.
     // i.e the protruding bolt shaft, nut and washer.
 
+// bolt assembly with tolerances for making a hole
+module boltHole(bolt_size=[ 5,t],  // Bolt spec 5mm dia,  M2.5, 20mm deep
+                center=false
+                ) {
+                    
+     if ( center ) {
+         translate([0,0,-(bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol)/2])
+        // bolt assembly                  
+        boltAssembly(bolt_size=[bolt_size[0]+2*htol,bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol],hole=true); 
+     } 
+     else {
+          boltAssembly(bolt_size=[bolt_size[0]+2*htol,bolt_size[1]+0.7*(bolt_size[0]+2*htol)+tol],hole=true); 
+     }
+}
+
 function boltWidthSpacing(wb) =
     w*(1/(wb+1));
 
@@ -376,6 +392,7 @@ module boltArray(pn,
                  hole=hole
                     );
     }
+
 
 // An array of bolt holes to match the bolts.
 module boltHoles(pn,
@@ -620,51 +637,111 @@ module TubeConn1(i,
         bolt_size=[ 5,20],
         wa=w/2, // The width of the Tube connection
         compA=0,
-        h=-50
+       // h=-tube/2,
+        bolt_section=60,
+        fillet=10
         ) {
-            
+          
+       // Compensate for tube and bolt section.     
+        h=tube/2+bolt_section;
+        r=tube/2; // The radius of the tube section.    
+        b=bolt_section; // The length of the bolt section.    
             
     // Part coordinates
-        pc=partCoord(p=i+1,o=it/2,f=-it/2,n=$fn);
-        at=( i <= no_of_sections/2 ? partAngle(p=i+1)-compA : partAngle(p=i+1)+compA); // tangent
-             
-        // Embed into middle of interface o=-t-it/2
-        N=partNormal(p=i+1,o=it/2,f=-it/2,n=$fn,a=compA,h=h);
-        xc=N[0];
-        yc=N[1];
-        Lnx=N[2];
-        Lny=N[3];
+        pc=partCoord(p=i+1,o=-it/2,f=-it/2,n=$fn);
+        xi=pc[0];
+        yi=pc[2];
             
+        xj=r+it/2;
+        yj=f;
+            
+        y0=f; // The focus point
+        y1=f-r;   // where the bolt section will attach to the arc
+        y2=f-r-b; // Where the parabola will attach to the bolt section.
+        y3=f+r;
+        y4=f+r+b;  // The top bolt section.
+            
+        ata=atan((yj-yi)/(xj-xi)); // Angle for parabolic extrusion to arc 
+        atl=norm([yj-yi,xj-xi]); // Length
+                               
+        aw=atan(atl*2/w);  // Alpha angle, change in angle required (x-axis)
+        atlw=pow(pow(atl,2)+pow(w/2,2),0.5); // The new length based on additional angle
+        
         woffset=-w/2+boltOffset(i,bolt_size,wb);
             
     // Parabola interface to reflector
+    // fillet for improved strength
     difference() {
-        // Offset bolts (for nesting)
-        translate([0,wa/2+woffset,0])
-        basePart(i,
+    fillet(r=10,steps=5) {
+    // Offset bolts (for nesting)
+    translate([0,wa/2+woffset,0])
+    basePart(i,
             wb=wa,
             o=[0-fillet, -it+fillet]);
-        boltHoles(i,
+
+    
+   // Cuboid from section on face to clasp
+    translate([xi,0,yi])
+    translate([0,woffset,0])
+    rotate([-(90-aw)/2,0,0])
+    rotate([0,(90-ata),0])   
+    translate([0,0,-atlw/2])
+    cube([it,it,atlw],center=true);         
+   
+ 
+   // First bolt section cuboid
+    translate([0,0,y2])
+    translate([0,-w/2,0])
+    translate([it/2,0,bolt_section/2])
+    cube([it,wa,bolt_section],center=true); 
+       
+     // Top bolted section cubiod
+    translate([0,0,y3])
+    translate([0,-w/2,0])
+    translate([it/2,0,bolt_section/2])
+    cube([it,wa,bolt_section],center=true); 
+   
+   // Tube exterior
+    translate([0,-w/2,0])
+    translate([0,0,y0])
+    translate([0,it,0])
+    rotate([90,0,0])
+    cylinder(r=tube/2+it,h=2*it);
+    }
+
+  // CUTS
+  
+  // Tube hole
+    translate([0,-w/2+it/2,0])
+    translate([0,0,y0])
+    translate([0,it,0])
+    rotate([90,0,0])
+    union() {
+    cylinder(r=tube/2,h=3*it);
+     translate([-(tube+3*it)/2,0,(3*it+tol)/2])
+    cube([tube+3*it,tube+2*it+2*b,3*it+tol],center=true); 
+    }
+  
+    
+   // bolt holes
+    translate([0,0,y2+b/2])
+    translate([0,-w/2,0])
+    rotate([0,-90,0])
+    boltHole(bolt_size=[bolt_size[0],it*2],center=true);  
+
+    translate([0,0,y3+b/2])
+    translate([0,-w/2,0])
+    rotate([0,-90,0])
+    boltHole(bolt_size=[bolt_size[0],it*2],center=true); 
+    
+    
+    // Matching bolt holes for parabola
+            boltHoles(i,
                 bolt_size,  // Bolt spec 5mm dia,  M2.5, 20mm deep
                 t=t+it,
                 da=0
-                ); 
-    }
-    
-   // Cuboid from section on face to first bolts
-    translate([0,0,yc])
-    rotate([0,-at,0])
-    translate([0,woffset,0])
-    translate([0,0,-Lny/2])
-    cube([it,wa,Lny],center=true);         
-            
-   // First bolt section cuboid
-   
-   
-   // Tube clasp
-   
-   
-   // Top bolted section cubiod
+                );
+    } 
 }
 //
 
