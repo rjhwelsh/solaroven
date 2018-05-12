@@ -13,7 +13,7 @@ f=150; // parabola focus height, mm
 fillet=5; // fillet radius, mm 
 
 a=ParabolaFocus(f);
-w=100; // overall part width, mm
+w=50; // overall part width, mm
 t=14*2; // nominal thickness, mm
 l=800; // reflector length available, mm
 
@@ -75,20 +75,32 @@ echo("Radius=",pow(ReqArea/3.14,0.5)); //mm
 
 module basePart(p=1,  // Part no.
                 a=a,  // Parabolic a from a*x^2
-                w=w-2*fillet,  // Extrusion, width, w
+                w=w,  // Extrusion, width, w
                 o=[fillet,t-fillet],  // Normal vector from surface parabola at 0
-                f=[fillet,-fillet]) { // Tangent Length from each edge, x0+f, x1+f
+                f=[fillet,-fillet],  // Tangent Length from each edge, x0+f, x1+f
+                fillet=fillet,
+                ) { 
                                         // (follows curve)
       translate([0,-fillet,0])
         offset_3d(r=fillet){
         rotate([90,0,0])
-        linear_extrude(height=w)
+        linear_extrude(height=w-2*fillet)
         ParabolaPolygon(a=a,
             x=[x_sect[p-1],x_sect[p]],
             o=o,
             f=f);
         }
 }
+
+// Generates a parabolic slot for part no
+module Slot(p=1,
+            gat=0.9, // Gauge thickness, here ali 0.9mm
+            
+    ) 
+{
+    basePart(p=i,w=w+2*tol,o=[t/2-gat/2,t/2+gat/2],f=[tol,-tol],fillet=tol)
+}
+
 
 module legNo(i) {
 // The main function for generating load bearing legs.
@@ -341,8 +353,8 @@ module partSurfaceArray(pn, nb, // Number along parabolic curve
 
 // An array of bolts for assembly of the reflective material
 module boltArray(pn,
-            nb=3, // Number of bolts along parabola
-            wb=2,  // Number of bolts along width
+            nb=2, // Number of bolts along parabola
+            wb=1,  // Number of bolts along width
             db=0,   // Bolt depth, positioning 
             bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep
             hole=false 
@@ -408,7 +420,7 @@ module boltNest(pn,
     // Offset bolts (for nesting)
     translate([0,boltOffset(nestPart,bolt_size,2),0])
     
-    partSurfaceArray(pn=nestPart, nb=3, wb=2, db=tol[0]) 
+    partSurfaceArray(pn=nestPart, nb=2, wb=1, db=tol[0]) 
     // Bolt assembly contruction
     translate([0,0,-t])
                     union() {
@@ -593,9 +605,12 @@ module partLeg(i,
     }
 }
 
+
+
+
 //for (i=[1:no_of_sections]) {
-//i=2;
-//partNo(i);
+i=2;
+partNo(i);
 //partLeg(i);
 //boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0],fillet=fillet);
 
