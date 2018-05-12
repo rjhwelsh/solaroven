@@ -27,6 +27,10 @@ x_sect=cat(
             ParabolaTravel(a=a,x=-x_max,l=i*l_sect,step=0,n=1000) ],
             [x_max]
             );
+            
+            
+feet=[3,6]; // The parabolic sections which will have the feet attached 
+            
 echo("x max=",x_max,"y max", y_max);   
 echo("x sections=",x_sect); 
 echo("l sections=",l_sect);      
@@ -99,7 +103,13 @@ module partNo(i) {
         // Positive for free hanging surfaces
         // Negative values for weight bearing surfaces
         compAngle=atan(htol/(t/4));
-        pinConn1(pn=i,a=compAngle);
+        
+        if ( i <= feet[0] && i < feet[1] ) {
+            pinConn1(pn=i,a=-compAngle);
+        }
+        else {
+            pinConn1(pn=i,a=compAngle);
+        }
         
     }   
         pinHole1(pn=i+1);
@@ -486,9 +496,9 @@ module partEmbossID(pn,
 // Create a leg that connects to part pn
 module partLeg(i,
                 it=0.5*t,       // interface thickness
-                compA=10,        // compensation angle
+                compA=-10,        // compensation angle
                 h=5,             // Additional height
-                leg=[20,w-2*fillet,t/2],  // Leg dimensions, x,y,thickness,extra height
+                leg=[t/2,w-2*fillet,t/2],  // Leg dimensions, x,y,t 
                 fillet=3,            // fillet radius
                 foot=[21,21,4,3], // foot dimensions, [x,y,z,t], t>fillet
                 ) {
@@ -579,9 +589,9 @@ module partLeg(i,
 }
 
 //for (i=[1:no_of_sections]) {
-i=2;
+//i=2;
 //partNo(i);
-partLeg(i);
+//partLeg(i);
 //boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0],fillet=fillet);
 
 
