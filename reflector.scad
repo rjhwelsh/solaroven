@@ -358,8 +358,7 @@ function boltLengthSpacing(nb, pin_length = t/2+t/4 ) =
         l_array*(1/(nb+1));
 
 function boltOffset(pn,bolt_size,wb) =
-        ( wb == 1 ? pow(-1,pn)*(boltWidthSpacing(wb)/(2)):
-                    pow(-1,pn)*(boltWidthSpacing(wb)/(4)));
+     pow(-1,pn)*(boltWidthSpacing(wb)/(4));
 
 // Array over the surface of a part
 module partSurfaceArray(pn, nb, // Number along parabolic curve
