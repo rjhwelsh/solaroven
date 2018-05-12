@@ -186,11 +186,12 @@ function partNormal(p=1,o=0,f=0,n=$fn,
 // Generates a parabolic slot for part no
 module Slot(i=1,
             gat=0.9, // Gauge thickness, here ali 0.9mm            
-            cutthru=5 // Cutthru depth, use more than PinConn1 here
+            cutthru=5, // Cutthru depth, use more than PinConn1 here
+            pin_length = t/2+t/4 // Compensation length off end, such that pin joint is not compromised
     ) 
 {
     translate([0,cutthru,0])
-    basePart(p=i,wb=w+2*tol+2*cutthru,o=[t/2-gat/2,t/2+gat/2],f=[tol,-tol],fillet=tol);
+    basePart(p=i,wb=w+2*tol+2*cutthru,o=[t/2-gat/2,t/2+gat/2],f=[tol+pin_length,-tol],fillet=tol);
 }
 module pinConn1(pn=1, 
                 pin_radius=t/4, // Pin_radius thickness
@@ -649,7 +650,7 @@ module TubeConn1(i,
         compA=0,
        // h=-tube/2,
         bolt_section=60,
-        fillet=10
+        fillet=5
         ) {
           
        // Compensate for tube and bolt section.     
@@ -762,8 +763,9 @@ module TubeConn1(i,
 
 }
 
-for (i=[1:no_of_sections]) { partNo(i); };
-for (i=[1:2]) { legNo(i); };
-for (i=[1:2]) { claspNo(i); };
+partNo(1);
+//for (i=[1:no_of_sections]) { partNo(i); };
+//for (i=[1:2]) { legNo(i); };
+//for (i=[1:2]) { claspNo(i); };
 
 
