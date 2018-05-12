@@ -90,6 +90,11 @@ module basePart(p=1,  // Part no.
         }
 }
 
+module legNo(i) {
+// The main function for generating load bearing legs.
+    partLeg(feet[i]);
+}
+
 module partNo(i) {
 // The main function for generating each part.
     //rotate([90,0,0])
