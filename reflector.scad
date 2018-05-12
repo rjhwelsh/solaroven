@@ -96,13 +96,13 @@ module basePart(p=1,  // Part no.
 
 module claspNo(i){
     // The main function for generated the tube clasps.
-    TubeConn1(clasp[i]);
+    TubeConn1(clasp[i-1]);
     
 }
 
 module legNo(i) {
 // The main function for generating load bearing legs.
-    partLeg(feet[i]);
+    partLeg(feet[i-1]);
 }
 
 module partNo(i) {
@@ -660,8 +660,10 @@ module TubeConn1(i,
             
     // Part coordinates
         pc=partCoord(p=i+(1+mi)/2,o=-it/2,f=mi*-it/2,n=$fn);
+
         xi=pc[0];
-        yi=pc[2];
+        yi=pc[2];            
+        echo("xi,yi=",[xi,yi]);
             
         xj=mi*(r+it/2);
         yj=f;
@@ -683,8 +685,8 @@ module TubeConn1(i,
     // Parabola interface to reflector
     // fillet for improved strength
     difference() {
-    //fillet(r=fillet,steps=5) {  // uncomment for fillets
-        union(){
+    fillet(r=fillet,steps=5) {  // uncomment for fillets
+    //    union(){
         
     // Offset bolts (for nesting)
     translate([0,wa/2+woffset,0])
@@ -759,14 +761,9 @@ module TubeConn1(i,
     
 
 }
-// part 4 ( tube clasp)
-claspNo(2);
 
-// part 3 (legs)
-
-
-//for (i=[1:no_of_sections]) { partNo(i); };
-//for (i=[1:2]) { legNo(i); };
-//for (i=[1:2]) { claspNo(i); };
+for (i=[1:no_of_sections]) { partNo(i); };
+for (i=[1:2]) { legNo(i); };
+for (i=[1:2]) { claspNo(i); };
 
 
