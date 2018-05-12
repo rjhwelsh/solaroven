@@ -441,15 +441,16 @@ module boltNest(pn,
                 nestPart,
                 bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep        
                 tol=[tol, htol],    // Tolerances for clearance
-                fillet=fillet       // fillet on the bolt nest
+                fillet=fillet,       // fillet on the bolt nest
+                wb=1
                 ) {
                     
-    echo("boltOffset=",boltOffset(pn+1,bolt_size,2));
+    echo("boltOffset=",boltOffset(pn+1,bolt_size,wb));
                     
     // Nests pn+1 into pn                 
     partTranslate(pn=[nestPart,pn], xyz=[[0,0,0],[0,0,0]], center=true) 
     // Offset bolts (for nesting)
-    translate([0,boltOffset(nestPart,bolt_size,2),0])
+    translate([0,boltOffset(nestPart,bolt_size,wb),0])
     
     partSurfaceArray(pn=nestPart, nb=2, wb=1, db=tol[0]) 
     // Bolt assembly contruction
