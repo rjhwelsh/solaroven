@@ -117,7 +117,7 @@ module partNo(i) {
         // Negative values for weight bearing surfaces
         compAngle=atan(htol/(t/4));
         
-        if ( i >= feet[0] && i < feet[1] ) {
+        if ( i > feet[0] && i <= feet[1] ) {
             pinConn1(pn=i,a=-compAngle);
         }
         else {
@@ -766,7 +766,7 @@ module TubeConn1(i,
 
 
 //for (i=[1:no_of_sections]) { partNo(i); };
-//for (i=[1:2]) { legNo(i); };
-//for (i=[1:2]) { claspNo(i); };
+for (i=[1:2]) { legNo(i); };
+for (i=[1:2]) { claspNo(i); };
 
 
