@@ -139,10 +139,11 @@ function partAngle(p=1) =
                 
 // Calculate distance and angle to x-axis and y-axis along normal
 function partNormal(p=1,o=0,f=0,n=$fn,
-                    a=0  // Compensation angle
+                    a=0,  // Compensation angle
+                    h=0  // extra height
                     ) =
-    let(A=partAngle(p)+a,
-        XYZ=partCoord(p,-o,f,n))
+    let(A=( p[0] <= no_of_sections/2 ? partAngle(p)-a : partAngle(p)+a),
+        XYZ=partCoord(p,-o,f,n)+[0,0,h])
     let( xc = XYZ[0]+XYZ[2]*tan(A),
          yc = XYZ[2]+XYZ[0]/tan(A),
          Lnx = XYZ[2]/cos(A),
@@ -486,24 +487,27 @@ module partEmbossID(pn,
 module partLeg(i,
                 it=0.5*t,       // interface thickness
                 compA=10,        // compensation angle
-                legDim=[20,w,t/2],  // Leg dimensions, x,y, and thickness of section
+                h=5,             // Additional height
+                leg=[20,w-2*fillet,t/2],  // Leg dimensions, x,y,thickness,extra height
                 fillet=3,            // fillet radius
-                foot=[21,21,4,1.2], // foot dimensions, [x,y,z,t]
+                foot=[21,21,4,3], // foot dimensions, [x,y,z,t], t>fillet
                 ) {
 
 
         // Part coordinates
         pc=partCoord(p=[i,i+1],o=0,f=0,n=$fn);
-        at=partAngle(p=[i,i+1])+compA; // tangent
+        at=( i <= no_of_sections/2 ? partAngle(p=[i,i+1])-compA : partAngle(p=[i,i+1])+compA); // tangent
         an=90-at;  // normal
              
         // Embed into middle of interface o=-t-it/2
-        N=partNormal(p=[i,i+1],o=-t-it/2,f=0,n=$fn,a=compA);
+        N=partNormal(p=[i,i+1],o=-t-it/2,f=0,n=$fn,a=compA,h=h);
         xc=N[0];
         yc=N[1];
         Lnx=N[2];
-        Lny=N[3];                
-
+        Lny=N[3];
+                    
+        ax=atan(Lnx/(leg[1]/2));         // Angle around the x-axis to centre
+        Lnz=norm([Lnx, leg[1]/2]);       // The length of the extrusion required.
 
         // Interface to part no. i
         if ( nestedPart(i) > 0 ) {
@@ -514,42 +518,68 @@ module partLeg(i,
             
             
        // Leg main
-       Legc=legDim[0]*tan(at)/2; // Leg compensation to meet xc,0
+       Legc=abs(leg[0]*tan(at)/2); // Leg compensation to meet xc,0   
+       Legcz=abs(leg[0]/tan(at)/2); // Compensation to angle toward center foot  
        
-       //main
-       LegCube1=[legDim[0],legDim[1],Lnx+Legc]-2*[fillet,fillet,fillet];   
+       
+       //main leg shapes
+       LegCube1=[leg[0],leg[2],Lnz+Legc+Legcz]-2*[fillet,fillet,fillet];   
+       
        //ground cut-off
-       LegCube2=[ legDim[0]/cos(at) ,                 
-                legDim[1],
-                legDim[0]*sin(at)   
-                ]+2*[fillet,fillet,fillet]; 
-       // internal cut-off
-       LegCube3=LegCube1-[ 0,2*legDim[2],2*legDim[2] ] + 2*[fillet,fillet,fillet];
-        
-       offset_3d(r=fillet){  
-       difference() {              
-        // main section  
-        translate([xc,,0])    
-        rotate([0,-at,0])
-        translate([0,-w/2,(Lnx-Legc)/2]) 
-           difference() {
-            cube(LegCube1,center=true); //main
-            cube(LegCube3,center=true); //internal cut
-           }
+       LegCube2=[(leg[0]+(Lnz-Lnx)/abs(2*tan(at)))/cos(at) ,                 
+                leg[1],
+                (leg[0]+(Lnz-Lnx)/abs(2*tan(at)))*abs(sin(at))   
+                ]+2*[fillet,fillet,fillet];  
            
-        // Cut-off cube  
-        translate([xc,-w/2,-LegCube2[2]/2])
-        cube(LegCube2,center=true);
+      // foot
+      FootCube0 = [ foot[0],foot[1],foot[2]];   //base
+      FootCube1 = FootCube0 - 2*fillet*[1,1,0]; //interior
+      FootCube2 = FootCube0 + foot[3]*[ 2, 2, 1 ] - 2*fillet*[1,1,1]; //exterior
+          
+       difference() {  
+        offset_3d(r=fillet){  
+            union() {    
+                difference() {              
+                    // main section  
+                    translate([xc,0,-h])    // attach to foot
+                    rotate([0,-at,0])       // rotate to meet parabola
+                    translate([0,-w/2,0])   // center in parabola                 
+                       union() {  
+                           // legs
+
+                           rotate([-(90-ax),0,0])
+                           translate([0,-(LegCube1[1]/2),0])
+                           translate([0,0,-Legcz-Legc])  // compensation 
+                           translate([0,0,LegCube1[2]/2]) // center
+                           cube(LegCube1,center=true); //main
+                          
+                           rotate([90-ax,0,0])
+                           translate([0,(LegCube1[1]/2),0])
+                           translate([0,0,-Legcz-Legc]) // compensation 
+                           translate([0,0,LegCube1[2]/2]) // center
+                           cube(LegCube1,center=true); //main
+                       }
+                       
+                    // Cut-off cube  
+                    translate([xc,-w/2,-LegCube2[2]/2+fillet-h])
+                    cube(LegCube2,center=true);
+                       
+                   }
+                   
+           translate([xc,-w/2,FootCube2[2]/2+fillet-h])
+           cube(FootCube2,center=true);
        }
    }
-       // Feet
-       //translate([pc[0],-w/2,0])   
-       //cube(foot,center=true);
-            
+     // Foot
+   offset_3d(r=fillet){  
+     translate([xc,-w/2,FootCube1[2]/2-fillet-h])
+     cube(FootCube1,center=true);
+        }           
+    }
 }
 
 //for (i=[1:no_of_sections]) {
-i=7;
+i=2;
 //partNo(i);
 partLeg(i);
 //boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0],fillet=fillet);
