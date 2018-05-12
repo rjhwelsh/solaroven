@@ -99,10 +99,10 @@ echo("Polygon(x=[1,10])");
    
 //nose cone
 rotate_extrude(convexity=10,$fn=12)
-ParabolaPolygon(1/2/15,0,0,x=[0,0],,o=[0,2],f=[0,30],n=100);
+ParabolaPolygon(ParabolaFocus(15),0,0,x=[0,0],,o=[0,2],f=[0,30],n=100);
 
 //parabolic extrusion
 rotate([90,0,0])
 linear_extrude(height=300)
-ParabolaPolygon(1/2/15,0,0,x=[0,0],,o=[0,0.9],f=[-30,30]);
+ParabolaPolygon(ParabolaFocus(15),0,0,x=[0,0],,o=[0,0.9],f=[-30,30]);
     
