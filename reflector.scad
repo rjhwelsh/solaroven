@@ -183,7 +183,7 @@ function partNormal(p=1,o=0,f=0,n=$fn,
                 
                 
 // Generates a parabolic slot for part no
-module Slot(p=1,
+module Slot(i=1,
             gat=0.9, // Gauge thickness, here ali 0.9mm            
             cutthru=5 // Cutthru depth, use more than PinConn1 here
     ) 
@@ -545,7 +545,7 @@ module partEmbossID(pn,
 module partLeg(i,
                 it=0.5*t,       // interface thickness
                 compA=-10,        // compensation angle
-                h=5,             // Additional height
+                h=t+5,             // Additional height
                 leg=[t/2,w-2*fillet,t/2],  // Leg dimensions, x,y,t 
                 fillet=3,            // fillet radius
                 foot=[21,21,4,3], // foot dimensions, [x,y,z,t], t>fillet
@@ -758,14 +758,11 @@ module TubeConn1(i,
 
 }
 //
-
-i=4;
-//partNo(i);
-TubeConn1(i);
-TubeConn1(i+1);
+legNo(1);
+partNo(4);
 
 //for (i=[1:no_of_sections]) { partNo(i); };
-// for (i=[1:2]) { legNo(i); };
-// for (i=[1:2]) { claspNo(i); };
+//for (i=[1:2]) { legNo(i); };
+//for (i=[1:2]) { claspNo(i); };
 
 
