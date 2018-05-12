@@ -214,7 +214,7 @@ module pinConn1(pn=1,
         translate([t/2,0,w/2+cut_thru])
             cube([t,pin_neck,w+cut_thru*2+cci/2],center=true);
         translate([0,0,cci/4])
-        cylinder(r=pin_radius,h=w+cut_thru*2-cci/2);
+        cylinder(r1=pin_radius,r2=pin_radius+htol,h=w+cut_thru*2-cci/2);
 }
 }
 
