@@ -108,16 +108,10 @@ module partNo(i) {
     
         // Nest with the centre parts at the top
         // Outer parts at the bottom
-        if ( i < no_of_sections/2 ) {
-            if ( i > 1 ) 
-                { boltNest(pn=i,nestPart=i-1); }
-        }  
-        else {
-            if ( i < no_of_sections ) 
-                { boltNest(pn=i,nestPart=i+1); }
-        }
+        if ( nestedPart(i) > 0 ) {
+            boltNest(pn=i,nestPart=nestedPart(i));
+            }
 
-    
         translate([0,-w,0])
         partEmbossID(pn=i);
         partEmbossID(pn=i);
@@ -142,6 +136,23 @@ function partAngle(p=1) =
                 ParabolaGradient(a,x=sumv(ps)/len(ps),angle=true)[0]:
                 // otherwise
          ParabolaGradient(a,x=x_sect[p-1],angle=true)[0]);
+                
+// Calculate distance and angle to x-axis and y-axis along normal
+function partNormal(p=1,o=0,f=0,n=$fn,
+                    a=0  // Compensation angle
+                    ) =
+    let(A=partAngle(p)+a,
+        XYZ=partCoord(p,-o,f,n))
+    let( xc = XYZ[0]+XYZ[2]*tan(A),
+         yc = XYZ[2]+XYZ[0]/tan(A),
+         Lnx = XYZ[2]/cos(A),
+         Lny = XYZ[0]/sin(A)
+                )
+        [ xc,            // xc, xintersection
+          yc,           // yc, yintersection
+           Lnx,          // Lnx, Perpendicular Length to xc
+           Lny          // Lny, Perpendicular Length to yc
+                ];
 
 module pinConn1(pn=1, 
                 pin_radius=t/4, // Pin_radius thickness
@@ -345,11 +356,33 @@ module boltHoles(pn,
             hole=true); 
 }
 
+
+// Provides the part no. to nest with part no. i
+function nestedPart(i) =
+    ( i < no_of_sections/2 ? 
+        ( i > 1  ? i-1 : 0 ) :
+        ( i < no_of_sections ? i+1 : 0 )
+    );
+
+// Generates a fillet for a cylinder
+module cylinderFillet(r=1.0, fillet=5,tol=tol) {
+    difference() {
+        cylinder(r=r+fillet,
+             h=fillet);
+
+        translate([0,0,fillet+tol])
+        rotate_extrude(convexity = 10)
+        translate([r+fillet, 0, 0])
+        circle(r = fillet, $fn=20);
+    }
+}
+
 // Provides a pattern for nesting bolts inside each subsequent parabola.
 module boltNest(pn,
                 nestPart,
                 bolt_size=[ 5,20],  // Bolt spec 5mm dia,  M2.5, 20mm deep        
-                tol=[tol, htol]    // Tolerances for clearance
+                tol=[tol, htol],    // Tolerances for clearance
+                fillet=fillet       // fillet on the bolt nest
                 ) {
                     
     echo("boltOffset=",boltOffset(pn+1,bolt_size,2));
@@ -362,9 +395,15 @@ module boltNest(pn,
     partSurfaceArray(pn=nestPart, nb=3, wb=2, db=tol[0]) 
     // Bolt assembly contruction
     translate([0,0,-t])
-    cylinder(r=bolt_size[0]+tol[1]+tol[0],
-             h=bolt_size[1]+tol[1]+tol[0]);
-                    
+                    union() {
+                        cylinder(r=bolt_size[0]+tol[1]+tol[0],
+                                    h=bolt_size[1]+tol[1]+tol[0]);
+                        if (fillet>0) { 
+                            cylinderFillet(r=bolt_size[0]+tol[1]+tol[0],
+                                            fillet=fillet);
+                        }
+                    }
+                
 }
 
 // Creates an embossed id for each part number
@@ -440,9 +479,83 @@ module partEmbossID(pn,
 
 
 
+
+
+
+// Create a leg that connects to part pn
+module partLeg(i,
+               foot=[21,21,4], // foot dimensions, [x,y,z,]
+               fthick=1.2,      // foot thickness, t
+                it=0.5*t,       // interface thickness
+                compA=10,        // compensation angle
+                legDim=[20,w,t/2],  // Leg dimensions, x,y, and thickness of section
+                fillet=3            // fillet radius
+                ) {
+
+
+        // Part coordinates
+        pc=partCoord(p=[i,i+1],o=0,f=0,n=$fn);
+        at=partAngle(p=[i,i+1])+compA; // tangent
+        an=90-at;  // normal
+             
+        // Embed into middle of interface o=-t-it/2
+        N=partNormal(p=[i,i+1],o=-t-it/2,f=0,n=$fn,a=compA);
+        xc=N[0];
+        yc=N[1];
+        Lnx=N[2];
+        Lny=N[3];                
+
+
+        // Interface to part no. i
+        if ( nestedPart(i) > 0 ) {
+            boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0]);
+            }
+        
+        basePart(i,o=[t+fillet, (t+it)-fillet]);
+            
+            
+       // Leg main
+       Legc=legDim[0]*tan(at)/2; // Leg compensation to meet xc,0
+       
+       //main
+       LegCube1=[legDim[0],legDim[1],Lnx+Legc]-2*[fillet,fillet,fillet];   
+       //ground cut-off
+       LegCube2=[ legDim[0]/cos(at) ,                 
+                legDim[1],
+                legDim[0]*sin(at)   
+                ]+2*[fillet,fillet,fillet]; 
+       // internal cut-off
+       LegCube3=LegCube1-[ 0,2*legDim[2],2*legDim[2] ] + 2*[fillet,fillet,fillet];
+        
+       offset_3d(r=fillet){  
+       difference() {              
+        // main section  
+        translate([xc,,0])    
+        rotate([0,-at,0])
+        translate([0,-w/2,(Lnx-Legc)/2]) 
+           difference() {
+            cube(LegCube1,center=true); //main
+            cube(LegCube3,center=true); //internal cut
+           }
+           
+        // Cut-off cube  
+        translate([xc,-w/2,-LegCube2[2]/2])
+        cube(LegCube2,center=true);
+       }
+   }
+       // Feet
+       //translate([pc[0],-w/2,0])   
+       //cube(foot,center=true);
+            
+}
+
 //for (i=[1:no_of_sections]) {
-i=4;
-partNo(i);
+i=7;
+//partNo(i);
+partLeg(i);
+//boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0],fillet=fillet);
+
+
 //}
 
 
