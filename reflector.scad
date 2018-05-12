@@ -567,21 +567,21 @@ module partLeg(i,
         ax=atan(Lnx/(leg[1]/2));         // Angle around the x-axis to centre
         Lnz=norm([Lnx, leg[1]/2]);       // The length of the extrusion required.
 
-        // Interface to part no. i
+            
+        // Interface section to part no. i
         if ( nestedPart(i) > 0 ) {
             boltNest(pn=i,nestPart=nestedPart(i),tol=[0,0]);
-            }
-        
+            }        
         basePart(i,o=[t+fillet, (t+it)-fillet]);
             
             
        // Leg main
-       Legc=abs(leg[0]*tan(at)/2); // Leg compensation to meet xc,0   
-       Legcz=abs(leg[0]/tan(at)/2); // Compensation to angle toward center foot  
+       c1=abs(leg[0]*tan(at)/2); // Leg compensation to meet xc,0   
+       c2=abs(leg[0]/tan(ax)/2); // Compensation to angle toward center foot  
        
        
        //main leg shapes
-       LegCube1=[leg[0],leg[2],Lnz+Legc+Legcz]-2*[fillet,fillet,fillet];   
+       LegCube1=[leg[0],leg[2],Lnz+c1+c2]-2*[fillet,fillet,fillet];   
        
        //ground cut-off
        LegCube2=[(leg[0]+(Lnz-Lnx)/abs(2*tan(at)))/cos(at) ,                 
@@ -607,13 +607,13 @@ module partLeg(i,
 
                            rotate([-(90-ax),0,0])
                            translate([0,-(LegCube1[1]/2),0])
-                           translate([0,0,-Legcz-Legc])  // compensation 
+                           translate([0,0,-c2-c1])  // compensation 
                            translate([0,0,LegCube1[2]/2]) // center
                            cube(LegCube1,center=true); //main
                           
                            rotate([90-ax,0,0])
                            translate([0,(LegCube1[1]/2),0])
-                           translate([0,0,-Legcz-Legc]) // compensation 
+                           translate([0,0,-c2-c1]) // compensation 
                            translate([0,0,LegCube1[2]/2]) // center
                            cube(LegCube1,center=true); //main
                        }
@@ -626,14 +626,14 @@ module partLeg(i,
                    
            translate([xc,-w/2,FootCube2[2]/2+fillet-h])
            cube(FootCube2,center=true);
-       }
-   }
+                }
+            }
      // Foot
-   offset_3d(r=fillet){  
-     translate([xc,-w/2,FootCube1[2]/2-fillet-h])
-     cube(FootCube1,center=true);
-        }           
-    }
+        offset_3d(r=fillet){  
+            translate([xc,-w/2,FootCube1[2]/2-fillet-h])
+            cube(FootCube1,center=true);
+                }           
+            }
 }
 
 
