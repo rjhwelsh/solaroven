@@ -191,7 +191,11 @@ module Slot(i=1,
     ) 
 {
     translate([0,cutthru,0])
-    basePart(p=i,wb=w+2*tol+2*cutthru,o=[t/2-gat/2,t/2+gat/2],f=[tol+pin_length,-tol],fillet=tol);
+    basePart(p=i,
+            wb=w+2*tol+2*cutthru,
+            o=[t/2-gat/2,t/2+gat/2],
+            f=[tol+pin_length,-tol],
+            fillet=tol);
 }
 module pinConn1(pn=1, 
                 pin_radius=t/4, // Pin_radius thickness
@@ -754,18 +758,9 @@ module TubeConn1(i,
     
     // Matching bolt holes for parabola
     boltHoles(i,
-                bolt_size,  // Bolt spec 5mm dia,  M2.5, 20mm deep
-                t=t+it,
-                da=0
-                );
-    } 
-    
-
-}
-
-partNo(1);
-//for (i=[1:no_of_sections]) { partNo(i); };
-//for (i=[1:2]) { legNo(i); };
-//for (i=[1:2]) { claspNo(i); };
+                bolt_size,  // Bolt spec
+for (i=[1:no_of_sections]) { partNo(i); };
+for (i=[1:2]) { legNo(i); };
+for (i=[1:2]) { claspNo(i); };
 
 
