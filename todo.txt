@@ -1,1 +1,2 @@
 - Change tapered pins to change direction, after the centreline; this way the reflector may be propped up and supported from the centre pieces 4 and 5.
+- Add a snap pin connection design that can be unpinned.
