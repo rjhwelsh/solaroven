@@ -541,12 +541,6 @@ module partEmbossID(pn,
 }
 
 
-
-
-
-
-
-
 // Create a leg that connects to part pn
 module partLeg(i,
                 it=0.5*t,       // interface thickness
@@ -641,9 +635,6 @@ module partLeg(i,
                 }           
             }
 }
-
-
-
 
 // Create a connection for the solar tube
 module TubeConn1(i,
