@@ -1,5 +1,5 @@
 use<parabola.scad>
-use<fillet.scad>
+use<ClothBotCreations/utilities/fillet.scad>
 use<MCAD/metric_fastners.scad>
 
 $fn=121;
