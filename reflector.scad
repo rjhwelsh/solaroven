@@ -759,6 +759,11 @@ module TubeConn1(i,
     // Matching bolt holes for parabola
     boltHoles(i,
                 bolt_size,  // Bolt spec
+                t=t+it,
+                da=0
+    );
+  }}
+    
 for (i=[1:no_of_sections]) { partNo(i); };
 for (i=[1:2]) { legNo(i); };
 for (i=[1:2]) { claspNo(i); };
