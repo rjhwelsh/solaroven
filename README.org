@@ -1,0 +1,58 @@
+#+TITLE: Solar Oven Reflector
+#+AUTHOR: Roger J. H. Welsh
+#+EMAIL: rjhwelsh@gmail.com
+* About
+Some parametric designs for a solar oven reflector.
+* Oven
+The oven is based on an evacuated solar tube from RandSolar.
+Which is available [[https://randsolar.com/shop/large-solar-ovenstove-evacuated-4-glass-vacuum-tube-cooker-2/][here]].
+
+* Reflector
+The reflector is a parametric design.
+The =parabolic-reflector.ods= provides some accurate calculations for
+determining the flat size of the reflective material you would require for the
+reflective body.
+
+* =reflector.scad=
+This provides the 3d printed model for curving your reflective material into an
+arc. The default material it is designed for is 0.9mm Aluminium sheet.
+
+** Variables
+ The following variables are adjustable in =reflector.scad=.
+   - scale :: scale of the model (useful for testing)
+   - tol :: manufacturing tolerance
+   - htol :: hole clearance
+   - f :: the height of the parabolic focus, mm
+	 - fillet :: the fillet radius, mm
+	 - w :: overall parabolic width, mm
+	 - t :: nominal thickness, mm
+   - l :: reflector "arc" length along the parabola, mm
+   - tube :: the diameter of your solar tube, mm
+   - no_of_sections :: the number of sections to use,
+   - feet :: an array[2] specifying the sections to attach feet to.
+	 - clasp :: an array[2] specifying the sections to attach the tube clasp to.
+   - some rudimentary strength calculations.
+
+** Dependencies
+The 3d model has been built using =openscad= and some open-source gpl libraries.
+To get this project and dependencies issue:
+#+BEGIN_SRC sh
+git clone www.github.com/rjhwelsh/solaroven &&
+cd solaroven &&
+git clone --depth 1 https://github.com/clothbot/ClothBotCreations &&
+git clone --depth 1 https://github.com/openscad/MCAD
+#+END_SRC
+
+** Build
+To build the models. Issue:
+#+BEGIN_SRC sh
+make
+#+END_SRC
+At a minimum, you will require =GNU make= and =openscad=.
+
+* Oven Tray
+Included are some concept drawings for an oven tray.
+
+* Conclusion
+If you have any comments, corrections, suggestions or pull-requests please get
+in touch. ;)
